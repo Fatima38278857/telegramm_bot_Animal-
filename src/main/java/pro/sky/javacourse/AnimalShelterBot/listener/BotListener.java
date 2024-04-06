@@ -1,4 +1,4 @@
-package pro.sky.javacourse.AnimalShelterBot.controller;
+package pro.sky.javacourse.AnimalShelterBot.listener;
 
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
