@@ -1,4 +1,4 @@
-package pro.sky.javacourse.AnimalShelterBot.listener;
+package pro.sky.javacourse.AnimalShelterBot.service;
 
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
@@ -7,7 +7,6 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import pro.sky.javacourse.AnimalShelterBot.service.BotSender;
 
 import java.util.List;
 
