@@ -22,10 +22,9 @@ import pro.sky.javacourse.AnimalShelterBot.model.menu.BotKeyboardState;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
+// Class TelegramBot extends abstract class TelegramLongPollingBot from Telegram API
 @Component
-// Наследуем TelegramLongPollingBot - абстрактный класс Telegram API
 public class TelegramBot extends TelegramLongPollingBot {
     private final String botUserName;
     private String botToken;
@@ -37,6 +36,11 @@ public class TelegramBot extends TelegramLongPollingBot {
     private BotKeyboardState keyboardState;
 
 
+    /**
+     * Constructor for configure bot with botToken and botUserName.
+     * @param botToken
+     * @param botUserName
+     */
     public TelegramBot(@Value("${telegram.bot.token}") String botToken, @Value("${spring.datasource.username}") String botUserName) {
         super(botToken);
         this.botUserName = botUserName;
@@ -56,6 +60,11 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     // getBotToken() is deprecated
+
+    /**
+     * Method for register bot. No configuration class were used.
+     * @throws TelegramApiException
+     */
     @PostConstruct
     public void init() throws TelegramApiException {
         TelegramBotsApi botsApi = new TelegramBotsApi(DefaultBotSession.class);
@@ -67,7 +76,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         this.keyboardState = BotKeyboardState.SHELTER_SELECT;
     }
 
-
+    /**
+     * onUpdateReceived method handles all updates, new updates should be parsed into this method.
+     */
     @Override
     public void onUpdateReceived(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
@@ -130,6 +141,12 @@ public class TelegramBot extends TelegramLongPollingBot {
         executeAndSendMessage(helpMessage); // отображение сообщения в чате, отправка в чат
     }
 
+    /**
+     * Example of method that creates keyboard buttons menu on the bottom of telegram chat window.
+     * Will be refactored or deleted later.
+     * @param chatId chat identificator of type Long
+     * @param message String message that should be entered by telegram user to start this method.
+     */
     public void sendText(Long chatId, String message) {
         logger.info("Bot sendText() to chatId " + chatId + " with message: " + message);
         SendMessage sendMessage = SendMessage.builder()
@@ -171,10 +188,16 @@ public class TelegramBot extends TelegramLongPollingBot {
         return button;
     }
 
-    // Creating inlineKeyboardMarkup from Array containing of Arrays of rows,
-    // where each row contains of Arrays of buttons,
-    // each button is an array of {String buttonName, and String callbackData}.
-    // Array must be instantiated before passed to this method.
+    /**
+     * Creates inlineKeyboardMarkup from Array containing of Arrays of rows,
+     * where each row contains of Arrays of buttons,
+     * each button is an array of {String buttonName, String callbackData}.<br>
+     * Array <u>must</u> be instantiated before passed to this method.<br>
+     * InlineKeyboardMarkup can be invoked on Message obj to add inline keyboard buttons.
+     *
+     * @param rows {{{row1Btn1Name, row1Btn1Callback},{row1Btn2Name, row1Btn2Callback}},{{row2Btn1Name, row3Btn1Callback}}}
+     * @return InlineKeyboardMarkup obj
+     */
     private InlineKeyboardMarkup createInlineKeyboardMarkup(String[][]... rows) {
         InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> keyboardRows = new ArrayList<>();
@@ -190,6 +213,12 @@ public class TelegramBot extends TelegramLongPollingBot {
         return keyboardMarkup;
     }
 
+    /**
+     * Method for execute telegram SendMessage message
+     * and handle {@link TelegramApiException} in a single line of code.
+     *
+     * @param message {@link SendMessage} message
+     */
     private void executeAndSendMessage(SendMessage message) {
         try {
             execute(message);
@@ -198,6 +227,12 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    /**
+     * Method for edit text in message and execute telegram message
+     * while handling {@link TelegramApiException}.
+     *
+     * @param message {@link EditMessageText} message
+     */
     private void executeAndEditMessage(EditMessageText message) {
         try {
             execute(message);
@@ -209,6 +244,14 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     // Retrieving particular menu / bot message
 
+    /**
+     * Specific method for construct and send Shelter select menu<br>
+     * This method uses custom methods:<br>{@link TelegramBot#createInlineKeyboardMarkup(String[][]...)}
+     * to create buttons
+     * and {@link TelegramBot#executeAndSendMessage(SendMessage)} to send message<br>
+     *
+     * @param chatId chat identity of type Long
+     */
     private void menuShelterSelect(Long chatId) {
         List<List<String>> shelters = new ArrayList<>();
         shelters.add(List.of("Солнышко", "Адрес: Москва, ул. Академика Королева, 13", "0"));
@@ -224,6 +267,14 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    /**
+     * Specific method for construct and send selected Shelter menu.<br>
+     * This method uses custom methods:<br>{@link TelegramBot#createInlineKeyboardMarkup(String[][]...)}
+     * to create buttons
+     * and {@link TelegramBot#executeAndSendMessage(SendMessage)} to send message<br>
+     *
+     * @param chatId chat identity of type Long, shelterId - shelter identity of type Long
+     */
     private void menuShelter(Long chatId, Long shelterId) {
         List<List<String>> shelters = new ArrayList<>();
         shelters.add(List.of("Солнышко", "Адрес: Москва, ул. Академика Королева, 13", "0", "Режим работы:\nПонедельник - пятница: с 7-00 до 20-00 без обеда и выходных."));
