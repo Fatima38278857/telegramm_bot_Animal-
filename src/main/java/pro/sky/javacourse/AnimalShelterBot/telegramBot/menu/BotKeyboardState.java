@@ -1,4 +1,4 @@
-package pro.sky.javacourse.AnimalShelterBot.model.menu;
+package pro.sky.javacourse.AnimalShelterBot.telegramBot.menu;
 
 public enum BotKeyboardState {
     SHELTER_SELECT,

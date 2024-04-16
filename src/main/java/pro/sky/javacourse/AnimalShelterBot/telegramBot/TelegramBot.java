@@ -1,4 +1,4 @@
-package pro.sky.javacourse.AnimalShelterBot.model;
+package pro.sky.javacourse.AnimalShelterBot.telegramBot;
 
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -18,7 +18,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
-import pro.sky.javacourse.AnimalShelterBot.model.menu.BotKeyboardState;
+import pro.sky.javacourse.AnimalShelterBot.telegramBot.menu.BotKeyboardState;
 
 import java.util.ArrayList;
 import java.util.List;
