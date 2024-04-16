@@ -5,6 +5,9 @@ import pro.sky.javacourse.AnimalShelterBot.modal.Caretaker;
 @Service
 public interface CaretakerService {
 
+    Caretaker addCaretaker(Long chatId,String name, String address);
 
+    void addContacts(Long chatId,String contacts);
+    void addContactsOnMap(Long chatId,String contacts);
 
 }

@@ -5,4 +5,5 @@ import org.springframework.stereotype.Repository;
 import pro.sky.javacourse.AnimalShelterBot.modal.Caretaker;
 @Repository
 public interface CaretakerRepository extends JpaRepository<Caretaker,Long> {
+    Caretaker findByChatId(Long chatId);
 }

@@ -25,4 +25,6 @@ public class QueryDefinitionClass {
         reportService.saveAReport(report);
     }
 
+
+
 }

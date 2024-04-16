@@ -1,21 +1,35 @@
 package pro.sky.javacourse.AnimalShelterBot.modal;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 
+import java.util.Map;
 import java.util.Objects;
 @Entity
 public class Caretaker {
+
+    private static Map<Long,String> mapWithContacts;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private final Long chatId;
     private String name;
     private String address;
     private String comments;
+    private String contacts;
     private Long petId;
 
-    public Caretaker(String name, String address, String comments, Long petId) {
+    public Caretaker(Long chatId, String name, String address) {
+        this.chatId = chatId;
         this.name = name;
         this.address = address;
-        this.comments = comments;
-        this.petId = petId;
+    }
+
+    public static Map<Long, String> getMapWithContacts() {
+        return mapWithContacts;
     }
 
     public Long getId() {
@@ -69,5 +83,17 @@ public class Caretaker {
 
     public void setPetId(Long petId) {
         this.petId = petId;
+    }
+
+    public String getContacts() {
+        return contacts;
+    }
+
+    public void setContacts(String contacts) {
+        this.contacts = contacts;
+    }
+
+    public Long getChatId() {
+        return chatId;
     }
 }

@@ -1,11 +1,16 @@
 package pro.sky.javacourse.AnimalShelterBot.modal;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 
 import java.awt.*;
 import java.util.List;
 @Entity
 public class Shelter {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String name;
@@ -14,12 +19,11 @@ public class Shelter {
     private final Location location;
     private List<Volunteer> volunteers;
 
-    public Shelter(String name, String info, String regime, List<Volunteer> volunteers,
+    public Shelter(String name, String info, String regime,
                    String address, List<Image> locationMaps) {
         this.name = name;
         this.info = info;
         this.regime = regime;
-        this.volunteers = volunteers;
         location = new Location(address, locationMaps);
     }
 
@@ -62,6 +66,7 @@ public class Shelter {
 
 
     //------------------------------Inner class------------------------------//
+    @Entity
     private static class Location {
         private String address;
         private List<Image> locationMaps;

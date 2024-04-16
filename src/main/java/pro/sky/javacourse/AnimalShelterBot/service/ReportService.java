@@ -5,5 +5,5 @@ import pro.sky.javacourse.AnimalShelterBot.modal.Report;
 
 @Service
 public interface ReportService {
-    void saveAReport(Report report);
+    void addReport(Report report);
 }

@@ -12,5 +12,21 @@ public class CaretakerServiceImpl implements CaretakerService {
     }
 
 
+    @Override
+    public Caretaker addCaretaker(Long chatId,String name, String address) {
+        Caretaker caretaker = new Caretaker(chatId,name, address);
+        return caretakerRepository.save(caretaker);
+    }
+
+    @Override
+    public void addContacts(Long chatId,String contacts) {
+        caretakerRepository.findByChatId(chatId).setContacts(contacts);
+
+    }
+
+    @Override
+    public void addContactsOnMap(Long chatId, String contacts) {
+        Caretaker.getMapWithContacts().put(chatId, contacts);
+    }
 
 }
