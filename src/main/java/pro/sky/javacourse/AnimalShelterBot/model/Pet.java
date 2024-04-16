@@ -1,9 +1,14 @@
 package pro.sky.javacourse.AnimalShelterBot.model;
 
-import java.time.LocalDateTime;
-import java.util.Objects;
+import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Objects;
+@Entity
 public class Pet {
+    @Id
+    @GeneratedValue
     private Long id;
     private Long shelterId;
     private Long caretakerId;
@@ -12,8 +17,17 @@ public class Pet {
     private String breed;
     private int age;
     private String color;
-    private LocalDateTime startProbationary;
-    private LocalDateTime endProbationary;
+    // private LocalDateTime startProbationary; лишние поля в классе
+    // private LocalDateTime endProbationary;
+
+    private List<Pet> pets;
+
+    @ManyToOne
+    @JoinColumn(name = "shelterId")
+    private Shelter shelter;
+
+    public Pet() {
+    }
 
     public Pet(Long shelterId, Long caretakerId, String type, String name, String breed, int age, String color) {
         this.shelterId = shelterId;
@@ -34,6 +48,10 @@ public class Pet {
     public String getBreed() { return breed; }
     public int getAge() { return age; }
     public String getColor() { return color; }
+    public Shelter getShelter() { return shelter; }
+    public void setShelter(Shelter shelter) {
+        this.shelter = shelter;
+    }
 
     @Override
     public boolean equals(Object object) {
