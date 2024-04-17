@@ -1,5 +1,6 @@
 package pro.sky.javacourse.AnimalShelterBot.service;
 
+import pro.sky.javacourse.AnimalShelterBot.modal.Shelter;
 import pro.sky.javacourse.AnimalShelterBot.model.Pet;
 
 import java.util.List;
