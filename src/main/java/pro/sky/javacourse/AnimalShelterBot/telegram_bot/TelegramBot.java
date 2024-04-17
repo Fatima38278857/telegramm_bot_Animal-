@@ -1,4 +1,4 @@
-package pro.sky.javacourse.AnimalShelterBot.telegramBot;
+package pro.sky.javacourse.AnimalShelterBot.telegram_bot;
 
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -18,7 +18,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
-import pro.sky.javacourse.AnimalShelterBot.telegramBot.menu.BotKeyboardState;
+import pro.sky.javacourse.AnimalShelterBot.telegram_bot.menu.BotKeyboardState;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +38,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     /**
      * Constructor for configure bot with botToken and botUserName.
+     *
      * @param botToken
      * @param botUserName
      */
@@ -63,6 +64,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     /**
      * Method for register bot. No configuration class were used.
+     *
      * @throws TelegramApiException
      */
     @PostConstruct
@@ -97,7 +99,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
         } else if (update.hasCallbackQuery()) {
             String callbackData = update.getCallbackQuery().getData();
-            Integer messageID = update.getCallbackQuery().getMessage().getMessageId();
+            Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
             Long chatId = update.getCallbackQuery().getMessage().getChatId();
 
             switch (callbackData) {
@@ -106,7 +108,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     EditMessageText messageText = new EditMessageText();
                     messageText.setChatId(chatId);
                     messageText.setText(text);
-                    messageText.setMessageId(messageID);
+                    messageText.setMessageId(messageId);
                     executeAndEditMessage(messageText);
                 }
                 case "CLEAR_BUTTON" -> {
@@ -114,7 +116,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     EditMessageText messageText = new EditMessageText();
                     messageText.setChatId(chatId);
                     messageText.setText(text);
-                    messageText.setMessageId(messageID);
+                    messageText.setMessageId(messageId);
                     executeAndEditMessage(messageText);
                 }
                 case "SHELTER_SELECT" -> {
@@ -125,6 +127,10 @@ public class TelegramBot extends TelegramLongPollingBot {
                     if (callbackData.startsWith("SHELTER")) {
                         Long shelterId = Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
                         menuShelter(chatId, shelterId);
+                    } else if (callbackData.startsWith("LOCATION_MAP")) {
+                        menuLocation(update);
+                    } else if (callbackData.startsWith("SEPARATE_SHELTER")) {
+                        menuShelterSelect(update);
                     } else {
                         sendText(chatId, "Произошла ошибка");
                     }
@@ -134,17 +140,18 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void help(Long chatId) {
-        SendMessage helpMessage = createMessage(chatId, "Инструкция по применению.");
+        SendMessage message = createMessage(chatId, "Инструкция по применению.");
         String[][][] buttons = {{{"Help", "HELP_BUTTON"}, {"Ok", "CLEAR_BUTTON"}}};
         InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
-        helpMessage.setReplyMarkup(inlineKeyboardMarkup);
-        executeAndSendMessage(helpMessage); // отображение сообщения в чате, отправка в чат
+        message.setReplyMarkup(inlineKeyboardMarkup);
+        executeAndSendMessage(message); // отображение сообщения в чате, отправка в чат
     }
 
     /**
      * Example of method that creates keyboard buttons menu on the bottom of telegram chat window.
      * Will be refactored or deleted later.
-     * @param chatId chat identificator of type Long
+     *
+     * @param chatId  chat identificator of type Long
      * @param message String message that should be entered by telegram user to start this method.
      */
     public void sendText(Long chatId, String message) {
@@ -260,11 +267,51 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         for (List<String> shelter : shelters) {
             SendMessage shelterMessage = createMessage(chatId, shelter.get(0) + "\n\n" + shelter.get(1));
-            String[][][] buttons = {{{"Схема проезда", "SHELTER_LOCATION_MAP" + shelter.get(2)}, {"Выбрать", "SHELTER" + shelter.get(2)}}};
+            String[][][] buttons = {{{"Схема проезда", "LOCATION_MAP" + shelter.get(2)}, {"Выбрать", "SHELTER" + shelter.get(2)}}};
             InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
             shelterMessage.setReplyMarkup(inlineKeyboardMarkup);
             executeAndSendMessage(shelterMessage);
         }
+    }
+
+    /**
+     * Specific method that returns message of separate shelter from roadmap menu to its original condition in shelter select menu
+     * reverses the effect of {@link TelegramBot#menuLocation(Update)} method
+     * @param update of Update class transfers information like chatId, messageId, callbackData including shelterId
+     */
+    private void menuShelterSelect(Update update) {
+        String callbackData = update.getCallbackQuery().getData();
+        Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
+        Long chatId = update.getCallbackQuery().getMessage().getChatId();
+        Long shelterId = Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
+
+        List<List<String>> shelters = new ArrayList<>();
+        shelters.add(List.of("Солнышко", "Адрес: Москва, ул. Академика Королева, 13", "0"));
+        shelters.add(List.of("Дружок", "Адрес: Ижевск, ул. Боевой славы, 5", "1"));
+        shelters.add(List.of("На Невском", "Адрес: Санкт-Петербург, Невский проспект, 18", "2"));
+
+        List<String> shelter = new ArrayList<>();
+        try {
+            shelter = shelters.stream()
+                    .filter(s -> Long.valueOf(s.get(2)).equals(shelterId))
+                    .findFirst()
+                    .orElseThrow(NullPointerException::new);
+        } catch (NullPointerException e) {
+            logger.error("Shelter id: " + shelterId.toString() + " not found.");
+            e.printStackTrace();
+        }
+
+        String text = shelter.get(0) + "\n\n" + shelter.get(1);
+
+        EditMessageText messageText = new EditMessageText();
+        messageText.setChatId(chatId);
+        messageText.setText(text);
+        messageText.setMessageId(messageId);
+
+        String[][][] buttons = {{{"Схема проезда", "LOCATION_MAP" + shelter.get(2)}, {"Выбрать", "SHELTER" + shelter.get(2)}}};
+        InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
+        messageText.setReplyMarkup(inlineKeyboardMarkup);
+        executeAndEditMessage(messageText);
     }
 
     /**
@@ -302,6 +349,44 @@ public class TelegramBot extends TelegramLongPollingBot {
         InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
         shelterMessage.setReplyMarkup(inlineKeyboardMarkup);
         executeAndSendMessage(shelterMessage);
+    }
+
+    /**
+     * Specific method that edits message of particular shelter before edit to show roadmap to that shelter
+     * @param update of Update class transfers information like chatId, messageId, callbackData including shelterId
+     */
+    private void menuLocation(Update update) {
+        String callbackData = update.getCallbackQuery().getData();
+        Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
+        Long chatId = update.getCallbackQuery().getMessage().getChatId();
+        Long shelterId = Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
+
+        List<List<String>> shelters = new ArrayList<>();
+        shelters.add(List.of("Солнышко", "Адрес: Москва, ул. Академика Королева, 13", "0", "Режим работы:\nПонедельник - пятница: с 7-00 до 20-00 без обеда и выходных."));
+        shelters.add(List.of("Дружок", "Адрес: Ижевск, ул. Боевой славы, 5", "1", "Режим работы:\nПонедельник - пятница: с 8-00 до 21-00 без обеда и выходных."));
+        shelters.add(List.of("На Невском", "Адрес: Санкт-Петербург, Невский проспект, 18", "2", "Режим работы:\nПонедельник - пятница: с 6-00 до 20-00 без обеда и выходных."));
+
+        List<String> shelter = new ArrayList<>();
+        try {
+            shelter = shelters.stream()
+                    .filter(s -> Long.valueOf(s.get(2)).equals(shelterId))
+                    .findFirst()
+                    .orElseThrow(NullPointerException::new);
+        } catch (NullPointerException e) {
+            logger.error("Shelter id: " + shelterId.toString() + " not found.");
+            e.printStackTrace();
+        }
+
+        String text = shelter.get(0) + "\n" + shelter.get(3) + "\n\nЗдесь должна быть схема проезда к приюту " + shelter.get(0);
+        EditMessageText messageText = new EditMessageText();
+        messageText.setChatId(chatId);
+        messageText.setText(text);
+        messageText.setMessageId(messageId);
+
+        String[][][] buttons = {{{"Назад", "SEPARATE_SHELTER" + shelter.get(2)}, {"Выбрать", "SHELTER" + shelter.get(2)}}};
+        InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
+        messageText.setReplyMarkup(inlineKeyboardMarkup);
+        executeAndEditMessage(messageText);
     }
 
 

@@ -1,4 +1,4 @@
-package pro.sky.javacourse.AnimalShelterBot.telegramBot.menu;
+package pro.sky.javacourse.AnimalShelterBot.telegram_bot.menu;
 
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
