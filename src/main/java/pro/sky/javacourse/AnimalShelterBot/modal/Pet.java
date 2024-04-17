@@ -1,9 +1,7 @@
-package pro.sky.javacourse.AnimalShelterBot.model;
+package pro.sky.javacourse.AnimalShelterBot.modal;
 
 import jakarta.persistence.*;
-import pro.sky.javacourse.AnimalShelterBot.modal.Shelter;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 @Entity
@@ -18,8 +16,6 @@ public class Pet {
     private String breed;
     private int age;
     private String color;
-    // private LocalDateTime startProbationary; лишние поля в классе
-    // private LocalDateTime endProbationary;
 
     private List<Pet> pets;
 
