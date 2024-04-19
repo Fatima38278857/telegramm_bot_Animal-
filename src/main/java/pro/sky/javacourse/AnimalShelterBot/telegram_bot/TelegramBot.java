@@ -131,6 +131,12 @@ public class TelegramBot extends TelegramLongPollingBot {
                         menuLocation(update);
                     } else if (callbackData.startsWith("SEPARATE_SHELTER")) {
                         menuShelterSelect(update);
+                    } else if (callbackData.startsWith("HOW_TO")) {
+                        Long shelterId = Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
+                        menuHowTo(chatId, shelterId);
+                    } else if (callbackData.startsWith("ANIMAL_TYPES")) {
+                        Long shelterId = Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
+                        menuAnimalType (chatId, shelterId);
                     } else {
                         sendText(chatId, "Произошла ошибка");
                     }
@@ -277,6 +283,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     /**
      * Specific method that returns message of separate shelter from roadmap menu to its original condition in shelter select menu
      * reverses the effect of {@link TelegramBot#menuLocation(Update)} method
+     *
      * @param update of Update class transfers information like chatId, messageId, callbackData including shelterId
      */
     private void menuShelterSelect(Update update) {
@@ -341,7 +348,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         SendMessage shelterMessage = createMessage(chatId,
                 shelter.get(0) + "\n" + shelter.get(3));
 
-        String[][][] buttons = {{{"Как взять животное из приюта?", "HOW_TO"}},
+        String[][][] buttons = {{{"Как взять животное из приюта?", "HOW_TO" + shelter.get(2)}},
                 {{"Выбрать питомца", "ANIMAL_TYPES" + shelter.get(2)}},
                 {{"Оставьте свой номер и мы Вам перезвоним", "COLLECT_DATA"}},
                 {{"Вернуться в предыдущее меню", "SHELTER_SELECT"}}
@@ -353,6 +360,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     /**
      * Specific method that edits message of particular shelter before edit to show roadmap to that shelter
+     *
      * @param update of Update class transfers information like chatId, messageId, callbackData including shelterId
      */
     private void menuLocation(Update update) {
@@ -389,5 +397,71 @@ public class TelegramBot extends TelegramLongPollingBot {
         executeAndEditMessage(messageText);
     }
 
+    private void menuHowTo(Long chatId, Long shelterId) {
+        List<List<String>> shelters = new ArrayList<>();
+        // String howTo should be text from database, that can be unique for each shelter
+        String howTo = "Чтобы взять животное из приюта необходимо будет посетить приют и выбрать питомца. Адрес и режим работы приюта можно узнать, просмотрев информацию из предыдущих меню.\n" +
+                "Краткую информацию о содержащихся в приюте питомцах можно узнать, проследовав в предыдущем меню по кнопке «Выбрать питомца».\n" +
+                "Также в нашем боте можно получить рекомендации специалистов по общим вопросам содержания отдельных видов и пород животных. \n" +
+                "Для оформления документов от нам потребуется Ваш паспорт гражданина РФ.\n" +
+                "В приюте Вы познакомитесь с питомцем и сможете вместе провести время, например, сходить на прогулку.\n" +
+                "В отдельных случаях, от Вас потребуется подтвердить наличие условий содержания животного, либо наличие специальных предметов для транспортировки животного. С данными условиями Вы можете также кратко ознакомиться, перейдя в предыдущем меню по кнопке «Выбрать питомца».\n" +
+                "После заключения договора Вы сможете забрать питомца в его новый дом. Вам будет назначен испытательный срок, в течение которого Вы обязаны ежедневно присылать отчет о состоянии питомца с фотографиями. Отчет также можно передать через данного бота в Телеграмм. Замечания или пожелания от волонтеров, просматривающих отчеты, также поступят в Ваш чат с ботом.\n" +
+                "И главное, Вам могут отказать в передаче питомца или обязать вернуть питомца в приют без объяснения причин. Таково наше условие, с которым необходимо согласиться.\n" +
+                "После прохождения испытательного срока от Вас потребуется посетить приют вместе с питомцем для завершения оформления документов.\n" +
+                "По всем дополнительным вопросам Вы также можете связаться с нашими волонтерами используя чат бота либо можете оставить свои контактные данные, и мы Вам перезвоним.\n";
 
+        shelters.add(List.of("Солнышко", "Адрес: Москва, ул. Академика Королева, 13", "0", howTo));
+        shelters.add(List.of("Дружок", "Адрес: Ижевск, ул. Боевой славы, 5", "1", howTo));
+        shelters.add(List.of("На Невском", "Адрес: Санкт-Петербург, Невский проспект, 18", "2", howTo));
+
+        List<String> shelter = new ArrayList<>();
+        try {
+            shelter = shelters.stream()
+                    .filter(s -> Long.valueOf(s.get(2)).equals(shelterId))
+                    .findFirst()
+                    .orElseThrow(NullPointerException::new);
+        } catch (NullPointerException e) {
+            logger.error("Shelter id: " + shelterId.toString() + " not found.");
+            e.printStackTrace();
+        }
+
+        SendMessage message = createMessage(chatId, shelter.get(0) + "\n\n" + shelter.get(3));
+        String[][][] buttons = {{{"OK", "SHELTER" + shelter.get(2)}}};
+        InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
+        message.setReplyMarkup(inlineKeyboardMarkup);
+        executeAndSendMessage(message);
+    }
+
+    private void menuAnimalType(Long chatId, Long shelterId) {
+// нужно получить отдельные (distinct) типы животных из базы данных в зависимости от shelterId,
+//        у меня пока что shelterId от 0 до 2 включительно, поэтому я приравниваю его к индексу,
+//        но в будущем это не сработает
+        List<List<String>> allPetTypes = new ArrayList<>();
+        allPetTypes.add(List.of("Собаки", "Кошки", "Остальные"));
+        allPetTypes.add(List.of("Кошки", "Остальные"));
+        allPetTypes.add(List.of("Собаки", "Остальные"));
+        List<String> petTypes = allPetTypes.get(Integer.parseInt(shelterId.toString(), 10)); // получаем перечень
+        // типов животных в приюте с shelterId
+        if (petTypes.size() == 1) {
+            // здесь должен быть метод по отображению непосредственно питомцев
+            // для того чтобы не предлагать выбирать тип животного из одного варианта
+            return;
+        }
+        SendMessage message = createMessage(chatId, "Выберите тип питомца");
+
+        String[][][] buttons = new String[petTypes.size() + 1][1][2]; // массив из кнопок по 1 в ряд, количество рядов
+        // равно размеру списка типов животных + 1 ряд для кнопки "Назад", callBackData возвращаемая кнопкой с типом
+        // животного равна типу животного в верхнем регистре + Id приюта, чтобы сделать выборку.
+        for (int i = 0; i < petTypes.size(); i++) {
+            buttons[i][0][0] = petTypes.get(i);
+            buttons[i][0][1] = petTypes.get(i).toUpperCase() + shelterId; // чтобы кнопки работали типы животных должны
+            // быть в enum.
+        }
+        buttons[petTypes.size()][0][0] = "Назад";
+        buttons[petTypes.size()][0][1] = "SHELTER" + shelterId;
+        InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
+        message.setReplyMarkup(inlineKeyboardMarkup);
+        executeAndSendMessage(message);
+    }
 }
