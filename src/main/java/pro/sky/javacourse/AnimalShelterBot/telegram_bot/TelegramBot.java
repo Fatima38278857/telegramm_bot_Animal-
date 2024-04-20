@@ -136,7 +136,16 @@ public class TelegramBot extends TelegramLongPollingBot {
                         menuHowTo(chatId, shelterId);
                     } else if (callbackData.startsWith("ANIMAL_TYPES")) {
                         Long shelterId = Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
-                        menuAnimalType (chatId, shelterId);
+                        menuPetType(chatId, shelterId);
+                    } else if (callbackData.startsWith("СОБАК")) {
+                        Long shelterId = Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
+                        menuPetSelect(chatId, shelterId, "Собака");
+                    } else if (callbackData.startsWith("КОШК")) {
+                        Long shelterId = Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
+                        menuPetSelect(chatId, shelterId, "Кот");
+                    } else if (callbackData.startsWith("ОСТАЛЬНЫЕ")) {
+                        Long shelterId = Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
+                        menuPetSelect(chatId, shelterId, "Остальные");
                     } else {
                         sendText(chatId, ALTERNATIVE_TEXT);
                     }
@@ -436,7 +445,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         executeAndSendMessage(message);
     }
 
-    private void menuAnimalType(Long chatId, Long shelterId) {
+    private void menuPetType(Long chatId, Long shelterId) {
 // нужно получить отдельные (distinct) типы животных из базы данных в зависимости от shelterId,
 //        у меня пока что shelterId от 0 до 2 включительно, поэтому я приравниваю его к индексу,
 //        но в будущем это не сработает
@@ -467,4 +476,51 @@ public class TelegramBot extends TelegramLongPollingBot {
         message.setReplyMarkup(inlineKeyboardMarkup);
         executeAndSendMessage(message);
     }
+
+    private void menuPetSelect(Long chatId, Long shelterId, String petType) {
+        List<List<String>> allPets = new ArrayList<>();
+        // Long petId | String name | String petType | String info | Integer age | Long shelterId
+        allPets.add(List.of("0", "Шарик", "Собака", "Добрый, отзывчивый пес", "10", "0"));
+        allPets.add(List.of("1", "Барбос", "Собака", "Надежный охранник", "3", "0"));
+        allPets.add(List.of("2", "Василий", "Кот", "Ответственный и важный кот", "4", "0"));
+        allPets.add(List.of("3", "Машка", "Кот", "Общительная кошка", "3", "0"));
+        allPets.add(List.of("4", "Кеша", "Остальные", "Волнистый попугайчик", "1", "0"));
+
+        allPets.add(List.of("5", "Тортилла", "Остальные", "Мудрая черепаха", "20", "1"));
+        allPets.add(List.of("6", "Пеппа", "Остальные", "Морская свинка", "1", "1"));
+        allPets.add(List.of("7", "Матроскин", "Кот", "Кот. Очень деловой", "3", "1"));
+        allPets.add(List.of("8", "Мурка", "Кот", "Замурчательная кошка", "4", "1"));
+        allPets.add(List.of("9", "Марсик", "Кот", "Большой, пушистый кот", "5", "1"));
+
+        allPets.add(List.of("10", "Тайга", "Собака", "Тренированная охотничья собака. Девочка", "6", "2"));
+        allPets.add(List.of("11", "Ипполит", "Собака", "Комнатный пес, очень общительный", "4", "2"));
+        allPets.add(List.of("12", "Пуля", "Собака", "Смесь пуделя и болонки, очень активная", "5", "2"));
+        allPets.add(List.of("13", "Элвис", "Остальные", "Обаятельный хомяк", "1", "2"));
+
+        List<List<String>> pets = allPets.stream()
+                .filter(pet -> pet.get(5).equals(shelterId.toString()) && pet.get(2).equals(petType))
+                .toList();
+        // питомца могут забрать и список может внезапно оказаться пустым
+        SendMessage message = new SendMessage();
+        if (pets.isEmpty()) {
+            message = createMessage(chatId, "Нет питомцев для усыновления");
+            String[][][] buttons = {{{"Назад", "SHELTER" + shelterId}}};
+            InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
+            message.setReplyMarkup(inlineKeyboardMarkup);
+            executeAndSendMessage(message);
+        } else {
+            for (int i = 0; i < pets.size(); i++) {
+                message = createMessage(chatId, pets.get(i).get(1) + "\n\n" + pets.get(i).get(3) +
+                        " Возраст " + pets.get(i).get(5) + " полных лет");
+                executeAndSendMessage(message);
+            }
+            message = createMessage(chatId, "Вернуться в предыдущее меню");
+            String[][][] buttons = {{{"Назад", "ANIMAL_TYPES" + shelterId}}};
+            InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
+            message.setReplyMarkup(inlineKeyboardMarkup);
+            executeAndSendMessage(message);
+        }
+    }
+
+
 }
