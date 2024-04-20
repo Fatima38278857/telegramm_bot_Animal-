@@ -75,7 +75,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             logger.error("Error in bot init() method: " + e.toString());
         }
-        this.keyboardState = BotKeyboardState.SHELTER_SELECT;
+        this.keyboardState = BotKeyboardState.COMMON;
     }
 
     /**
@@ -138,7 +138,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                         Long shelterId = Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
                         menuAnimalType (chatId, shelterId);
                     } else {
-                        sendText(chatId, "Произошла ошибка");
+                        sendText(chatId, ALTERNATIVE_TEXT);
                     }
                 }
             }
@@ -166,23 +166,26 @@ public class TelegramBot extends TelegramLongPollingBot {
                 .chatId(chatId.toString())
                 .text(message).build();
 
-        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
-        List<KeyboardRow> keyboardRows = new ArrayList<>();
+// //           Code written below is for creating keyboard buttons at the bottom of the screen, not mapped to particular message
+// //           Can be used to activate chat with volunteer
 
-        KeyboardRow row = new KeyboardRow();
-        row.addAll(List.of("Старт"));
-        keyboardRows.add(row);
-
-        row = new KeyboardRow();
-        row.addAll(List.of("Button 2", "Button 3"));
-        keyboardRows.add(row);
-
-        row = new KeyboardRow();
-        row.addAll(List.of("Button 4", "Button 5"));
-        keyboardRows.add(row);
-
-        keyboardMarkup.setKeyboard(keyboardRows);
-        sendMessage.setReplyMarkup(keyboardMarkup);
+//        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+//        List<KeyboardRow> keyboardRows = new ArrayList<>();
+//
+//        KeyboardRow row = new KeyboardRow();
+//        row.addAll(List.of("Старт"));
+//        keyboardRows.add(row);
+//
+//        row = new KeyboardRow();
+//        row.addAll(List.of("Button 2", "Button 3"));
+//        keyboardRows.add(row);
+//
+//        row = new KeyboardRow();
+//        row.addAll(List.of("Button 4", "Button 5"));
+//        keyboardRows.add(row);
+//
+//        keyboardMarkup.setKeyboard(keyboardRows);
+//        sendMessage.setReplyMarkup(keyboardMarkup);
 
         executeAndSendMessage(sendMessage);
     }
@@ -351,7 +354,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         String[][][] buttons = {{{"Как взять животное из приюта?", "HOW_TO" + shelter.get(2)}},
                 {{"Выбрать питомца", "ANIMAL_TYPES" + shelter.get(2)}},
                 {{"Оставьте свой номер и мы Вам перезвоним", "COLLECT_DATA"}},
-                {{"Вернуться в предыдущее меню", "SHELTER_SELECT"}}
+                {{"Вернуться к выбору приюта", "SHELTER_SELECT"}}
         };
         InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
         shelterMessage.setReplyMarkup(inlineKeyboardMarkup);
