@@ -16,15 +16,13 @@ public class Shelter {
     private String name;
     private String info;
     private String regime;
-    private final Location location;
-    private List<Volunteer> volunteers;
 
-    public Shelter(String name, String info, String regime,
-                   String address, List<Image> locationMaps) {
+
+    public Shelter(String name, String info, String regime) {
         this.name = name;
         this.info = info;
         this.regime = regime;
-        location = new Location(address, locationMaps);
+
     }
 
     public Long getId() {
@@ -56,40 +54,8 @@ public class Shelter {
         this.regime = regime;
     }
 
-    public List<Volunteer> getVolunteers() {
-        return volunteers;
-    }
-
-    public void setVolunteers(List<Volunteer> volunteers) {
-        this.volunteers = volunteers;
-    }
 
 
     //------------------------------Inner class------------------------------//
-    @Entity
-    private static class Location {
-        private String address;
-        private List<Image> locationMaps;
 
-        public Location(String address, List<Image> locationMaps) {
-            this.address = address;
-            this.locationMaps = locationMaps;
-        }
-
-        public String getAddress() {
-            return address;
-        }
-
-        public void setAddress(String address) {
-            this.address = address;
-        }
-
-        public List<Image> getLocationMaps() {
-            return locationMaps;
-        }
-
-        public void setLocationMaps(List<Image> locationMaps) {
-            this.locationMaps = locationMaps;
-        }
-    }
 }

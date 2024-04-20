@@ -5,6 +5,6 @@ import org.springframework.stereotype.Repository;
 import pro.sky.javacourse.AnimalShelterBot.modal.Shelter;
 
 @Repository
-public interface ShelterRepository extends JpaRepository {
+public interface ShelterRepository extends JpaRepository<Shelter,Long> {
     Shelter findByName(String name);
 }

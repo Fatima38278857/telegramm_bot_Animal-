@@ -1,9 +1,11 @@
 package pro.sky.javacourse.AnimalShelterBot.service.impl;
 
+import org.springframework.stereotype.Service;
 import pro.sky.javacourse.AnimalShelterBot.modal.Caretaker;
 import pro.sky.javacourse.AnimalShelterBot.repository.CaretakerRepository;
 import pro.sky.javacourse.AnimalShelterBot.service.CaretakerService;
 
+@Service
 public class CaretakerServiceImpl implements CaretakerService {
     private CaretakerRepository caretakerRepository;
 
@@ -19,14 +21,8 @@ public class CaretakerServiceImpl implements CaretakerService {
     }
 
     @Override
-    public void addContacts(Long chatId,String contacts) {
-        caretakerRepository.findByChatId(chatId).setContacts(contacts);
-
-    }
-
-    @Override
-    public void addContactsOnMap(Long chatId, String contacts) {
-        Caretaker.getMapWithContacts().put(chatId, contacts);
+    public void getNameById(Long id) {
+        caretakerRepository.findById(id);
     }
 
 }

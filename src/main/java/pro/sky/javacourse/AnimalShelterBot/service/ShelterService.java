@@ -7,7 +7,7 @@ import pro.sky.javacourse.AnimalShelterBot.modal.Volunteer;
 
 import java.awt.*;
 import java.util.List;
-@Service
+
 public interface ShelterService {
     Shelter findingShelterByName(String name);
 

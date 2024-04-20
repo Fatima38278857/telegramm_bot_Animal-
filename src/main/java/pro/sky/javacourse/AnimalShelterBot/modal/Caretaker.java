@@ -9,9 +9,6 @@ import java.util.Map;
 import java.util.Objects;
 @Entity
 public class Caretaker {
-
-    private static Map<Long,String> mapWithContacts;
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -19,7 +16,6 @@ public class Caretaker {
     private String name;
     private String address;
     private String comments;
-    private String contacts;
     private Long petId;
 
     public Caretaker(Long chatId, String name, String address) {
@@ -28,9 +24,7 @@ public class Caretaker {
         this.address = address;
     }
 
-    public static Map<Long, String> getMapWithContacts() {
-        return mapWithContacts;
-    }
+
 
     public Long getId() {
         return id;
@@ -85,13 +79,7 @@ public class Caretaker {
         this.petId = petId;
     }
 
-    public String getContacts() {
-        return contacts;
-    }
 
-    public void setContacts(String contacts) {
-        this.contacts = contacts;
-    }
 
     public Long getChatId() {
         return chatId;
