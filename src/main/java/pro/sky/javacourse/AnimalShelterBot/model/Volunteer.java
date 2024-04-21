@@ -1,104 +1,106 @@
 package pro.sky.javacourse.AnimalShelterBot.model;
+import jakarta.persistence.*;
 
-import java.util.ArrayList;
-import java.util.List;
-
+@Entity
 public class Volunteer {
-    private long id;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
     private String name;
-    private String city;
-    private boolean working; // Статус работы: работает или не работает
-    private Pet currentPet; // Текущее животное, назначенное усыновителю
-    private boolean trialPeriod; // Флаг указывающий на наличие испытательного срока
-    private boolean reportApproved; // Флаг подтверждения отчета усыновителя
-    private String remarks; // Замечания для усыновителя
 
-    public Volunteer(long id, String name, String city) {
-        this.id = id;
+    @Column(nullable = false)
+    private String number;
+
+    private boolean isAvailable;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "pet_id", referencedColumnName = "id")
+    private Pet adoptedPet;
+
+    // Конструкторы
+    public Volunteer() {
+    }
+
+    public Volunteer(String name, String number) {
         this.name = name;
-        this.city = city;
-        this.working = true; // По умолчанию волонтер работает
-        this.currentPet = null;
-        this.trialPeriod = false;
-        this.reportApproved = false;
-        this.remarks = "";
+        this.number = number;
+        this.isAvailable = true; // Новый волонтер по умолчанию доступен для общения
     }
 
-
-    public boolean isWorking() {
-        return working;
+    // Геттеры и сеттеры
+    public Long getId() {
+        return id;
     }
 
-    public void setWorking(boolean working) {
-        this.working = working;
+    public void setId(Long id) {
+        this.id = id;
     }
 
-    public Pet getCurrentPet() {
-        return currentPet;
+    public String getName() {
+        return name;
     }
 
-    public void setCurrentPet(Pet currentPet) {
-        this.currentPet = currentPet;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public boolean isTrialPeriod() {
-        return trialPeriod;
+    public String getNumber() {
+        return number;
     }
 
-    public void setTrialPeriod(boolean trialPeriod) {
-        this.trialPeriod = trialPeriod;
+    public void setNumber(String number) {
+        this.number = number;
     }
 
-    public boolean isReportApproved() {
-        return reportApproved;
+    public boolean isAvailable() {
+        return isAvailable;
     }
 
-    public void setReportApproved(boolean reportApproved) {
-        this.reportApproved = reportApproved;
+    public void setAvailable(boolean available) {
+        isAvailable = available;
     }
 
-    public String getRemarks() {
-        return remarks;
+    public Pet getAdoptedPet() {
+        return adoptedPet;
     }
 
-    public void setRemarks(String remarks) {
-        this.remarks = remarks;
+    public void setAdoptedPet(Pet adoptedPet) {
+        this.adoptedPet = adoptedPet;
     }
 
-    // Метод для назначения животного усыновителю
-    public void assignPetToAdopter(Pet pet) {
-        this.currentPet = pet;
-        this.trialPeriod = true; // Установка испытательного срока
+    // Дополнительные методы
+    public void assignPet(Pet pet) {
+        this.adoptedPet = pet;
     }
 
-    // Метод для проверки отчета усыновителя
-    public void checkAdopterReport(boolean approved, String remarks) {
-        this.reportApproved = approved;
-        this.remarks = remarks;
+    public void extendTrialPeriod(int days) {
+        // Логика продления испытательного срока
+        // Например, увеличение срока на указанное количество дней
     }
 
-    // Метод для продления испытательного срока
-    public void extendTrialPeriod() {
-        this.trialPeriod = true;
+    public void checkAdoptionReport() {
+        // Логика проверки отчета усыновителя
     }
 
-    // Метод для забора животного у усыновителя
+    public void makeRemarksToAdopter(String remarks) {
+        // Логика оставления замечаний усыновителю
+    }
+
     public void takeBackPet() {
-        this.currentPet = null;
-        this.trialPeriod = false; // Завершение испытательного срока
+        this.adoptedPet = null;
     }
 
     @Override
     public String toString() {
         return "Volunteer{" +
                 "id=" + id +
-                ", firstName='" + name + '\'' +
-                ", city='" + city + '\'' +
-                ", working=" + working +
-                ", currentPet=" + (currentPet != null ? currentPet.getName() : "None") +
-                ", trialPeriod=" + trialPeriod +
-                ", reportApproved=" + reportApproved +
-                ", remarks='" + remarks + '\'' +
+                ", name='" + name + '\'' +
+                ", number='" + number + '\'' +
+                ", isAvailable=" + isAvailable +
+                ", adoptedPet=" + adoptedPet +
                 '}';
     }
 }

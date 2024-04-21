@@ -3,7 +3,7 @@ package pro.sky.javacourse.AnimalShelterBot.service.impl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import pro.sky.javacourse.AnimalShelterBot.modal.Shelter;
+import pro.sky.javacourse.AnimalShelterBot.model.Shelter;
 import pro.sky.javacourse.AnimalShelterBot.model.Pet;
 import pro.sky.javacourse.AnimalShelterBot.repository.PetRepository;
 import pro.sky.javacourse.AnimalShelterBot.service.PetService;

@@ -2,11 +2,8 @@ package pro.sky.javacourse.AnimalShelterBot.Controllers;
 
 import org.springframework.web.bind.annotation.*;
 import pro.sky.javacourse.AnimalShelterBot.intermediary.QueryDefinitionClass;
-import pro.sky.javacourse.AnimalShelterBot.modal.Shelter;
+import pro.sky.javacourse.AnimalShelterBot.model.Shelter;
 import pro.sky.javacourse.AnimalShelterBot.service.ShelterService;
-
-import java.awt.*;
-import java.util.List;
 
 @RestController("shelter")
 public class ShelterController {

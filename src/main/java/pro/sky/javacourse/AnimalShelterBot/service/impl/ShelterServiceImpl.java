@@ -1,7 +1,7 @@
 package pro.sky.javacourse.AnimalShelterBot.service.impl;
 
-import pro.sky.javacourse.AnimalShelterBot.modal.Shelter;
-import pro.sky.javacourse.AnimalShelterBot.modal.Volunteer;
+import pro.sky.javacourse.AnimalShelterBot.model.Shelter;
+import pro.sky.javacourse.AnimalShelterBot.model.Volunteer;
 import pro.sky.javacourse.AnimalShelterBot.repository.ShelterRepository;
 import pro.sky.javacourse.AnimalShelterBot.service.ShelterService;
 

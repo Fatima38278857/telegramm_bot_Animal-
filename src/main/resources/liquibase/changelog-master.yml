@@ -1,3 +1,5 @@
 databaseChangeLog:
   - include:
       file: liquibase/scripts/skypro-animal-shelter-bot.sql
+  - include:
+      file: liquibase/scripts/volunteer-table.sql

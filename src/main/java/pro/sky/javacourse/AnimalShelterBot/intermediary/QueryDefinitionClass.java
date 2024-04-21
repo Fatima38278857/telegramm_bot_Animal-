@@ -1,7 +1,7 @@
 package pro.sky.javacourse.AnimalShelterBot.intermediary;
 
 import org.springframework.stereotype.Service;
-import pro.sky.javacourse.AnimalShelterBot.modal.Report;
+import pro.sky.javacourse.AnimalShelterBot.model.Report;
 import pro.sky.javacourse.AnimalShelterBot.service.CaretakerService;
 import pro.sky.javacourse.AnimalShelterBot.service.ReportService;
 import pro.sky.javacourse.AnimalShelterBot.service.ShelterService;
