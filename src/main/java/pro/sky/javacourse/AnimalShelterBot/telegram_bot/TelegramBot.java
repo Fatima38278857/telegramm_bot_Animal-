@@ -14,6 +14,7 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -22,6 +23,7 @@ import pro.sky.javacourse.AnimalShelterBot.telegram_bot.menu.BotKeyboardState;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 // Class TelegramBot extends abstract class TelegramLongPollingBot from Telegram API
 @Component
@@ -39,8 +41,8 @@ public class TelegramBot extends TelegramLongPollingBot {
     /**
      * Constructor for configure bot with botToken and botUserName.
      *
-     * @param botToken
-     * @param botUserName
+     * @param botToken    telegram bot token from BotFather
+     * @param botUserName name of bot and name of postgreSQL dataBase
      */
     public TelegramBot(@Value("${telegram.bot.token}") String botToken, @Value("${spring.datasource.username}") String botUserName) {
         super(botToken);
@@ -95,6 +97,15 @@ public class TelegramBot extends TelegramLongPollingBot {
                     menuShelterSelect(chatId);
                 }
                 case "/help" -> help(chatId);
+                case "Убрать клавиатуру" -> {
+// This case is unfinished
+                    ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove(true);
+                    SendMessage msg = new SendMessage();
+                    msg.setText("Клавиатура удалена.");
+                    msg.setChatId(chatId);
+                    msg.setReplyMarkup(keyboardRemove);
+                    executeAndSendMessage(msg);
+                }
                 default -> sendText(chatId, ALTERNATIVE_TEXT);
             }
         } else if (update.hasCallbackQuery()) {
@@ -125,26 +136,26 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
                 default -> {
                     if (callbackData.startsWith("SHELTER")) {
-                        Long shelterId = Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
+                        Long shelterId = getIdFromCallbackData(callbackData);
                         menuShelter(chatId, shelterId);
                     } else if (callbackData.startsWith("LOCATION_MAP")) {
                         menuLocation(update);
                     } else if (callbackData.startsWith("SEPARATE_SHELTER")) {
                         menuShelterSelect(update);
                     } else if (callbackData.startsWith("HOW_TO")) {
-                        Long shelterId = Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
+                        Long shelterId = getIdFromCallbackData(callbackData);
                         menuHowTo(chatId, shelterId);
                     } else if (callbackData.startsWith("ANIMAL_TYPES")) {
-                        Long shelterId = Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
+                        Long shelterId = getIdFromCallbackData(callbackData);
                         menuPetType(chatId, shelterId);
                     } else if (callbackData.startsWith("СОБАК")) {
-                        Long shelterId = Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
+                        Long shelterId = getIdFromCallbackData(callbackData);
                         menuPetSelect(chatId, shelterId, "Собака");
                     } else if (callbackData.startsWith("КОШК")) {
-                        Long shelterId = Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
+                        Long shelterId = getIdFromCallbackData(callbackData);
                         menuPetSelect(chatId, shelterId, "Кот");
                     } else if (callbackData.startsWith("ОСТАЛЬНЫЕ")) {
-                        Long shelterId = Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
+                        Long shelterId = getIdFromCallbackData(callbackData);
                         menuPetSelect(chatId, shelterId, "Остальные");
                     } else {
                         sendText(chatId, ALTERNATIVE_TEXT);
@@ -159,6 +170,29 @@ public class TelegramBot extends TelegramLongPollingBot {
         String[][][] buttons = {{{"Help", "HELP_BUTTON"}, {"Ok", "CLEAR_BUTTON"}}};
         InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
         message.setReplyMarkup(inlineKeyboardMarkup);
+
+        // //           Code written below is for creating keyboard buttons at the bottom of the screen, not mapped to particular message
+// //           Can be used to activate chat with volunteer
+
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        List<KeyboardRow> keyboardRows = new ArrayList<>();
+
+        KeyboardRow row = new KeyboardRow();
+        row.addAll(List.of("Старт"));
+        keyboardRows.add(row);
+
+        row = new KeyboardRow();
+        row.addAll(List.of("Button 2", "Button 3"));
+        keyboardRows.add(row);
+
+        row = new KeyboardRow();
+        row.addAll(List.of("Button 4", "Убрать клавиатуру"));
+        keyboardRows.add(row);
+
+        keyboardMarkup.setKeyboard(keyboardRows);
+        keyboardMarkup.setResizeKeyboard(true); // resizes keyboard to smaller size
+        message.setReplyMarkup(keyboardMarkup);
+
         executeAndSendMessage(message); // отображение сообщения в чате, отправка в чат
     }
 
@@ -174,28 +208,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         SendMessage sendMessage = SendMessage.builder()
                 .chatId(chatId.toString())
                 .text(message).build();
-
-// //           Code written below is for creating keyboard buttons at the bottom of the screen, not mapped to particular message
-// //           Can be used to activate chat with volunteer
-
-//        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
-//        List<KeyboardRow> keyboardRows = new ArrayList<>();
-//
-//        KeyboardRow row = new KeyboardRow();
-//        row.addAll(List.of("Старт"));
-//        keyboardRows.add(row);
-//
-//        row = new KeyboardRow();
-//        row.addAll(List.of("Button 2", "Button 3"));
-//        keyboardRows.add(row);
-//
-//        row = new KeyboardRow();
-//        row.addAll(List.of("Button 4", "Button 5"));
-//        keyboardRows.add(row);
-//
-//        keyboardMarkup.setKeyboard(keyboardRows);
-//        sendMessage.setReplyMarkup(keyboardMarkup);
-
         executeAndSendMessage(sendMessage);
     }
 
@@ -236,6 +248,10 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
         keyboardMarkup.setKeyboard(keyboardRows);
         return keyboardMarkup;
+    }
+
+    private Long getIdFromCallbackData(String callbackData) {
+        return Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
     }
 
     /**
@@ -456,50 +472,68 @@ public class TelegramBot extends TelegramLongPollingBot {
         List<String> petTypes = allPetTypes.get(Integer.parseInt(shelterId.toString(), 10)); // получаем перечень
         // типов животных в приюте с shelterId
         if (petTypes.size() == 1) {
-            // здесь должен быть метод по отображению непосредственно питомцев
-            // для того чтобы не предлагать выбирать тип животного из одного варианта
-            return;
-        }
-        SendMessage message = createMessage(chatId, "Выберите тип питомца");
+            // if there is only one type of animal bot will execute menuPetSelect method with this type
+            String petType = "";
+            switch (petTypes.get(0)) {
+                case "Собаки" -> {
+                    petType = "Собака";
+                }
+                case "Кошки" -> {
+                    petType = "Кот";
+                }
+                default -> {
+                    petType = "Остальные";
+                }
+            }
+            menuPetSelect(chatId, shelterId, petType);
+        } else {
 
-        String[][][] buttons = new String[petTypes.size() + 1][1][2]; // массив из кнопок по 1 в ряд, количество рядов
-        // равно размеру списка типов животных + 1 ряд для кнопки "Назад", callBackData возвращаемая кнопкой с типом
-        // животного равна типу животного в верхнем регистре + Id приюта, чтобы сделать выборку.
-        for (int i = 0; i < petTypes.size(); i++) {
-            buttons[i][0][0] = petTypes.get(i);
-            buttons[i][0][1] = petTypes.get(i).toUpperCase() + shelterId; // чтобы кнопки работали типы животных должны
-            // быть в enum.
+            SendMessage message = createMessage(chatId, "Выберите тип питомца");
+
+            String[][][] buttons = new String[petTypes.size() + 1][1][2]; // массив из кнопок по 1 в ряд, количество рядов
+            // равно размеру списка типов животных + 1 ряд для кнопки "Назад", callBackData возвращаемая кнопкой с типом
+            // животного равна типу животного в верхнем регистре + Id приюта, чтобы сделать выборку.
+            for (int i = 0; i < petTypes.size(); i++) {
+                buttons[i][0][0] = petTypes.get(i);
+                buttons[i][0][1] = petTypes.get(i).toUpperCase() + shelterId; // чтобы кнопки работали типы животных должны
+                // быть в enum.
+            }
+            buttons[petTypes.size()][0][0] = "Назад";
+            buttons[petTypes.size()][0][1] = "SHELTER" + shelterId;
+            InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
+            message.setReplyMarkup(inlineKeyboardMarkup);
+            executeAndSendMessage(message);
         }
-        buttons[petTypes.size()][0][0] = "Назад";
-        buttons[petTypes.size()][0][1] = "SHELTER" + shelterId;
-        InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
-        message.setReplyMarkup(inlineKeyboardMarkup);
-        executeAndSendMessage(message);
     }
 
     private void menuPetSelect(Long chatId, Long shelterId, String petType) {
         List<List<String>> allPets = new ArrayList<>();
         // Long petId | String name | String petType | String info | Integer age | Long shelterId
-        allPets.add(List.of("0", "Шарик", "Собака", "Добрый, отзывчивый пес", "10", "0"));
-        allPets.add(List.of("1", "Барбос", "Собака", "Надежный охранник", "3", "0"));
-        allPets.add(List.of("2", "Василий", "Кот", "Ответственный и важный кот", "4", "0"));
-        allPets.add(List.of("3", "Машка", "Кот", "Общительная кошка", "3", "0"));
-        allPets.add(List.of("4", "Кеша", "Остальные", "Волнистый попугайчик", "1", "0"));
+        allPets.add(List.of("0", "Шарик", "Собака", "Добрый, отзывчивый пес.", "10", "0"));
+        allPets.add(List.of("1", "Барбос", "Собака", "Надежный охранник.", "3", "0"));
+        allPets.add(List.of("2", "Василий", "Кот", "Ответственный и важный кот.", "4", "0"));
+        allPets.add(List.of("3", "Машка", "Кот", "Общительная кошка.", "3", "0"));
+        allPets.add(List.of("4", "Кеша", "Остальные", "Волнистый попугайчик.", "1", "0"));
 
-        allPets.add(List.of("5", "Тортилла", "Остальные", "Мудрая черепаха", "20", "1"));
-        allPets.add(List.of("6", "Пеппа", "Остальные", "Морская свинка", "1", "1"));
-        allPets.add(List.of("7", "Матроскин", "Кот", "Кот. Очень деловой", "3", "1"));
-        allPets.add(List.of("8", "Мурка", "Кот", "Замурчательная кошка", "4", "1"));
-        allPets.add(List.of("9", "Марсик", "Кот", "Большой, пушистый кот", "5", "1"));
+        allPets.add(List.of("5", "Тортилла", "Остальные", "Мудрая черепаха.", "20", "1"));
+        allPets.add(List.of("6", "Пеппа", "Остальные", "Морская свинка.", "1", "1"));
+        allPets.add(List.of("7", "Матроскин", "Кот", "Кот. Очень деловой.", "3", "1"));
+        allPets.add(List.of("8", "Мурка", "Кот", "Замурчательная кошка.", "4", "1"));
+        allPets.add(List.of("9", "Марсик", "Кот", "Большой, пушистый кот.", "5", "1"));
 
-        allPets.add(List.of("10", "Тайга", "Собака", "Тренированная охотничья собака. Девочка", "6", "2"));
-        allPets.add(List.of("11", "Ипполит", "Собака", "Комнатный пес, очень общительный", "4", "2"));
-        allPets.add(List.of("12", "Пуля", "Собака", "Смесь пуделя и болонки, очень активная", "5", "2"));
+        allPets.add(List.of("10", "Тайга", "Собака", "Тренированная охотничья собака. Девочка.", "6", "2"));
+        allPets.add(List.of("11", "Ипполит", "Собака", "Комнатный пес, очень общительный.", "4", "2"));
+        allPets.add(List.of("12", "Пуля", "Собака", "Смесь пуделя и болонки, очень активная.", "5", "2"));
         allPets.add(List.of("13", "Элвис", "Остальные", "Обаятельный хомяк", "1", "2"));
 
         List<List<String>> pets = allPets.stream()
                 .filter(pet -> pet.get(5).equals(shelterId.toString()) && pet.get(2).equals(petType))
                 .toList();
+        long petTypes = allPets.stream()
+                .filter(pet -> pet.get(5).equals(shelterId.toString()))
+                .map(p -> p.get(2))
+                .distinct()
+                .count();
         // питомца могут забрать и список может внезапно оказаться пустым
         SendMessage message = new SendMessage();
         if (pets.isEmpty()) {
@@ -509,16 +543,24 @@ public class TelegramBot extends TelegramLongPollingBot {
             message.setReplyMarkup(inlineKeyboardMarkup);
             executeAndSendMessage(message);
         } else {
-            for (int i = 0; i < pets.size(); i++) {
-                message = createMessage(chatId, pets.get(i).get(1) + "\n\n" + pets.get(i).get(3) +
-                        " Возраст " + pets.get(i).get(5) + " полных лет");
+            for (List<String> pet : pets) {
+                message = createMessage(chatId, pet.get(1) + "\n\n" + pet.get(3) +
+                        " Возраст " + pet.get(5) + " полных лет");
                 executeAndSendMessage(message);
             }
             message = createMessage(chatId, "Вернуться в предыдущее меню");
-            String[][][] buttons = {{{"Назад", "ANIMAL_TYPES" + shelterId}}};
-            InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
-            message.setReplyMarkup(inlineKeyboardMarkup);
-            executeAndSendMessage(message);
+            // for one type of animals pet type selection menu won't be created
+            if (petTypes == 1) {
+                String[][][] buttons = {{{"Назад", "SHELTER" + shelterId}}};
+                InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
+                message.setReplyMarkup(inlineKeyboardMarkup);
+                executeAndSendMessage(message);
+            } else {
+                String[][][] buttons = {{{"Назад", "ANIMAL_TYPES" + shelterId}}};
+                InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
+                message.setReplyMarkup(inlineKeyboardMarkup);
+                executeAndSendMessage(message);
+            }
         }
     }
 
