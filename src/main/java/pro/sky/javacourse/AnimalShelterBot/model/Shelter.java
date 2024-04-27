@@ -1,35 +1,32 @@
-package pro.sky.javacourse.AnimalShelterBot.modal;
+package pro.sky.javacourse.AnimalShelterBot.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 
-import java.awt.*;
-import java.util.List;
 @Entity
+@Table(name = "shelter")
 public class Shelter {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    @Column(name = "name")
     private String name;
+    @Column(name = "info")
     private String info;
+    @Column(name = "regime")
     private String regime;
 
+    public Shelter() {
+    }
 
     public Shelter(String name, String info, String regime) {
         this.name = name;
         this.info = info;
         this.regime = regime;
-
     }
 
     public Long getId() {
         return id;
     }
-
-
     public String getName() {
         return name;
     }

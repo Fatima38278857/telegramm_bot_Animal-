@@ -1,8 +1,8 @@
 package pro.sky.javacourse.AnimalShelterBot.service.impl;
 
 import org.springframework.stereotype.Service;
-import pro.sky.javacourse.AnimalShelterBot.modal.Shelter;
-import pro.sky.javacourse.AnimalShelterBot.modal.Volunteer;
+import pro.sky.javacourse.AnimalShelterBot.model.Shelter;
+import pro.sky.javacourse.AnimalShelterBot.model.Volunteer;
 import pro.sky.javacourse.AnimalShelterBot.repository.ShelterRepository;
 import pro.sky.javacourse.AnimalShelterBot.service.ShelterService;
 
@@ -33,6 +33,16 @@ public class ShelterServiceImpl implements ShelterService {
     }
 
     @Override
+    public void delete(Long id) {
+        shelterRepository.deleteById(id);
+    }
+
+    @Override
+    public Shelter update(Long id) {
+        return null;
+    }
+
+    @Override
     public List<Volunteer> addVolunteer(String name, String address) {
         //Volunteer volunteer = new Volunteer(name, address);
         //shelterModal.getVolunteers().add(volunteer);
@@ -42,6 +52,16 @@ public class ShelterServiceImpl implements ShelterService {
     @Override
     public String getInfoAboutShelter(String name) {
         return shelterRepository.findByName(name).getInfo();
+    }
+
+    @Override
+    public Shelter findingShelterById(Long id) {
+        return shelterRepository.findById(id).orElse(null);
+    }
+
+    @Override
+    public List<Shelter> getAllShelters() {
+        return shelterRepository.findAll();
     }
 
 

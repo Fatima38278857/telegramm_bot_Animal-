@@ -3,13 +3,13 @@ package pro.sky.javacourse.AnimalShelterBot.Controllers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import pro.sky.javacourse.AnimalShelterBot.intermediary.QueryDefinitionClass;
-import pro.sky.javacourse.AnimalShelterBot.modal.Shelter;
+import pro.sky.javacourse.AnimalShelterBot.model.Shelter;
 import pro.sky.javacourse.AnimalShelterBot.service.ShelterService;
 
-import java.awt.*;
 import java.util.List;
 
-@RestController("shelter")
+@RestController
+@RequestMapping("shelter")
 public class ShelterController {
     @Autowired
     private ShelterService shelterService;
@@ -21,11 +21,24 @@ public class ShelterController {
         this.queryDefinitionClass = queryDefinitionClass;
     }
 
-    @GetMapping("give_info")
-    public String giveInfoAboutShelter(@RequestParam String name) {
-        return queryDefinitionClass.getInfoAboutShelter(name);
+    @GetMapping("get_{id}")
+    public Shelter takeShelterById(@PathVariable Long id) {
+        return shelterService.findingShelterById(id);
     }
 
+    @GetMapping("info_about_{name}")
+    public String giveInfoAboutShelter(@PathVariable String name) {
+        return queryDefinitionClass.getInfoAboutShelter(name);
+    }
+    @GetMapping("delete_{id}")
+    public void deleteShelter(@PathVariable Long id) {
+         shelterService.delete(id);
+    }
+
+    @GetMapping("get_all")
+    public List<Shelter> getAllShelters() {
+        return shelterService.getAllShelters();
+    }
     @PostMapping
     public Shelter addShelter(@RequestBody Shelter shelter) {
         Shelter savedShelter = shelterService.addShelter(shelter);
