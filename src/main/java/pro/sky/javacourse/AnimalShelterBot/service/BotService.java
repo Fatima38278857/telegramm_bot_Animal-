@@ -1,4 +1,4 @@
-package pro.sky.javacourse.AnimalShelterBot.telegram_bot.menu;
+package pro.sky.javacourse.AnimalShelterBot.service;
 
 public interface BotService {
     // List<Shelter> getShelters(); // возвращает список или Set приютов
@@ -12,4 +12,7 @@ public interface BotService {
     // List<Caretaker> getCaretakers(); // возвращает список всех опекунов
     // List<Caretaker> getActualCaretakers(); // Возвращает тех опекунов, на которых числятся питомцы у которых дата окончания испытательного срока больше LocalDateTime.now();
     // Caretaker getCaretakerById(Long CaretakerId); // Возвращает опекуна по Id;
+
+
+    // Нужно в приют добавить поле с дежурным волонтером
 }

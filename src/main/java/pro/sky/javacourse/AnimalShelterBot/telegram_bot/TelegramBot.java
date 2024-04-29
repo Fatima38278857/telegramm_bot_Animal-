@@ -1,17 +1,18 @@
 package pro.sky.javacourse.AnimalShelterBot.telegram_bot;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.validation.constraints.Null;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
+import org.telegram.telegrambots.meta.api.methods.ForwardMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
-import org.telegram.telegrambots.meta.api.objects.Message;
-import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.User;
+import org.telegram.telegrambots.meta.api.objects.*;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
@@ -19,11 +20,12 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
-import pro.sky.javacourse.AnimalShelterBot.telegram_bot.menu.BotKeyboardState;
+import pro.sky.javacourse.AnimalShelterBot.telegram_bot.menu.BotState;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 // Class TelegramBot extends abstract class TelegramLongPollingBot from Telegram API
 @Component
@@ -35,7 +37,9 @@ public class TelegramBot extends TelegramLongPollingBot {
             "Наша команда волонтеров будет счастлива, если удастся найти новый дом для любого из наших подопечных! " +
             "\nПожалуйста, выберите приют.";
     private final String ALTERNATIVE_TEXT = "Неизвестная команда!";
-    private BotKeyboardState keyboardState;
+    private BotState keyboardState;
+    private final Map<Long, BotState> botStates = new HashMap<Long, BotState>();
+    private final Map<Long, Long> shelterIdByChatId = new HashMap<Long, Long>();
 
 
     /**
@@ -49,20 +53,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         this.botUserName = botUserName;
     }
 
-    @Override
-    public String getBotUsername() {
-        return botUserName;
-    }
 
-    public BotKeyboardState getKeyboardState() {
-        return keyboardState;
-    }
-
-    public void setKeyboardState(BotKeyboardState keyboardState) {
-        this.keyboardState = keyboardState;
-    }
-
-    // getBotToken() is deprecated
+    // overriding getBotToken() method is deprecated
 
     /**
      * Method for register bot. No configuration class were used.
@@ -77,7 +69,11 @@ public class TelegramBot extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             logger.error("Error in bot init() method: " + e.toString());
         }
-        this.keyboardState = BotKeyboardState.COMMON;
+    }
+
+    @Override
+    public String getBotUsername() {
+        return botUserName;
     }
 
     /**
@@ -85,33 +81,192 @@ public class TelegramBot extends TelegramLongPollingBot {
      */
     @Override
     public void onUpdateReceived(Update update) {
+        Long chatId;
+        if (update.hasMessage()) {
+            chatId = update.getMessage().getChatId();
+        } else {
+            chatId = update.getCallbackQuery().getMessage().getChatId();
+        }
+        if (!botStates.containsKey(chatId)) {
+            botStates.put(chatId, BotState.COMMON);
+        }
+        // all bot states
         if (update.hasMessage() && update.getMessage().hasText()) {
             Message message = update.getMessage();
             User user = message.getFrom();
-            Long chatId = update.getMessage().getChatId();
             logger.info(user.getFirstName() + ", chatId " + chatId + ", wrote " + message.getText());
 
             switch (message.getText()) {
+                // "/start" command should close all unfinished tasks, remove ReplyKeyboard and return user to the beginning
                 case "/start" -> {
-                    sendText(chatId, WELCOME);
+                    if (botStates.get(chatId) == BotState.VOLUNTEER_CHAT) {
+                        sendText(chatId, "Чат с волонтером закрыт. Открыть чат можно выбрав приют.");
+                    }
+                    botStates.put(chatId, BotState.COMMON);
+                    ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove(true, true);
+                    SendMessage msg = SendMessage.builder().chatId(chatId).text(WELCOME).replyMarkup(keyboardRemove).build();
+                    try {
+                        execute(msg);
+                    } catch (TelegramApiException e) {
+                        logger.error("Error removing keyboard by start command: " + e.toString());
+                    }
+                    logger.info(user.getFirstName() + ", chatId " + chatId + ", has removed keyboard using start command");
                     menuShelterSelect(chatId);
+                    return;
                 }
-                case "/help" -> help(chatId);
-                case "Убрать клавиатуру" -> {
-// This case is unfinished
-                    ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove(true);
-                    SendMessage msg = new SendMessage();
-                    msg.setText("Клавиатура удалена.");
-                    msg.setChatId(chatId);
-                    msg.setReplyMarkup(keyboardRemove);
-                    executeAndSendMessage(msg);
+                case "/help" -> {
+                    help(chatId);
+                    return;
                 }
-                default -> sendText(chatId, ALTERNATIVE_TEXT);
+            }
+        }
+        // particular bot states
+        switch (botStates.get(chatId)) {
+            case COMMON -> onUpdateReceivedCommon(update);
+            case VOLUNTEER_CHAT -> onUpdateReceivedVolunteerChat(update);
+        }
+    }
+
+
+    //    @Override
+//    public void onUpdateReceived(Update update) {
+//        if (update.hasMessage() && update.getMessage().hasText()) {
+//            Message message = update.getMessage();
+//            User user = message.getFrom();
+//            Long chatId = update.getMessage().getChatId();
+//            logger.info(user.getFirstName() + ", chatId " + chatId + ", wrote " + message.getText());
+//            switch (message.getText()) {
+//                // "/start" command should close all unfinished tasks anr return user to the beginning
+//                case "/start" -> {
+//                    if (keyboardStates.get(chatId) != BotState.COMMON) {
+//                        keyboardStates.put(chatId, BotState.COMMON);
+//                    }
+//                    sendText(chatId, WELCOME);
+//                    menuShelterSelect(chatId);
+//                }
+//                case "/help" -> help(chatId);
+//                case "Закрыть чат" -> {
+//                    ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove(true, true);
+//                    SendMessage msg = new SendMessage();
+//                    msg.setText("Чат с волонтером закрыт. Для открытия чата с приютом воспользуйтесь меню приюта.");
+//                    msg.setChatId(chatId);
+//                    msg.setReplyMarkup(keyboardRemove);
+//                    executeAndSendMessage(msg);
+//                    keyboardStates.put(chatId, BotState.COMMON);
+//                    //////////////// надо как то вернуться в меню приюта, т.е. нужен callback
+//                }
+//                default -> {
+//                    if (keyboardStates.get(chatId) == BotState.COMMON) sendText(chatId, ALTERNATIVE_TEXT);
+//                    if (keyboardStates.get(chatId) == BotState.VOLUNTEER_CHAT) {
+//                        sendText(volunteerChatId, message.getText());
+//                    }
+//                }
+//            }
+//        // common state
+//        if (keyboardStates.get(chatId) == BotState.COMMON) {
+//            if (keyboardStates.get(chatId) == BotState.COMMON) {
+//                switch (message.getText()) {
+//
+//                    case "Убрать клавиатуру" -> {
+//// This case is unfinished
+//                        ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove(true, true);
+//                        SendMessage msg = new SendMessage();
+//                        msg.setText("Клавиатура удалена.");
+//                        msg.setChatId(chatId);
+//                        msg.setReplyMarkup(keyboardRemove);
+//                        executeAndSendMessage(msg);
+//                    }
+//                    default -> sendText(chatId, ALTERNATIVE_TEXT);
+//                }
+//            } else if (update.hasCallbackQuery()) {
+//                String callbackData = update.getCallbackQuery().getData();
+//                Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
+//                Long chatId = update.getCallbackQuery().getMessage().getChatId();
+//
+//                switch (callbackData) {
+//                    case "HELP_BUTTON" -> {
+//                        String text = "Здесь должна быть помощь";
+//                        EditMessageText messageText = new EditMessageText();
+//                        messageText.setChatId(chatId);
+//                        messageText.setText(text);
+//                        messageText.setMessageId(messageId);
+//                        executeAndEditMessage(messageText);
+//                    }
+//                    case "CLEAR_BUTTON" -> {
+//                        String text = "Точно всё понятно?";
+//                        EditMessageText messageText = new EditMessageText();
+//                        messageText.setChatId(chatId);
+//                        messageText.setText(text);
+//                        messageText.setMessageId(messageId);
+//                        executeAndEditMessage(messageText);
+//                    }
+//                    case "SHELTER_SELECT" -> {
+//                        sendText(chatId, "Выберите приют:");
+//                        menuShelterSelect(chatId);
+//                    }
+//                    case "VOLUNTEER_CHAT" -> {
+//                        this.keyboardState = BotState.VOLUNTEER_CHAT;
+//                        menuVolunteerChat(chatId);
+//                    }
+//                    default -> {
+//                        if (callbackData.startsWith("SHELTER")) {
+//                            Long shelterId = getIdFromCallbackData(callbackData);
+//                            menuShelter(chatId, shelterId);
+//                        } else if (callbackData.startsWith("LOCATION_MAP")) {
+//                            menuLocation(update);
+//                        } else if (callbackData.startsWith("SEPARATE_SHELTER")) {
+//                            menuShelterSelect(update);
+//                        } else if (callbackData.startsWith("HOW_TO")) {
+//                            Long shelterId = getIdFromCallbackData(callbackData);
+//                            menuHowTo(chatId, shelterId);
+//                        } else if (callbackData.startsWith("ANIMAL_TYPES")) {
+//                            Long shelterId = getIdFromCallbackData(callbackData);
+//                            menuPetType(chatId, shelterId);
+//                        } else if (callbackData.startsWith("СОБАК")) {
+//                            Long shelterId = getIdFromCallbackData(callbackData);
+//                            menuPetSelect(chatId, shelterId, "Собака");
+//                        } else if (callbackData.startsWith("КОШК")) {
+//                            Long shelterId = getIdFromCallbackData(callbackData);
+//                            menuPetSelect(chatId, shelterId, "Кот");
+//                        } else if (callbackData.startsWith("ОСТАЛЬНЫЕ")) {
+//                            Long shelterId = getIdFromCallbackData(callbackData);
+//                            menuPetSelect(chatId, shelterId, "Остальные");
+//                        } else {
+//                            sendText(chatId, ALTERNATIVE_TEXT);
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//
+//
+//    }
+//
+//}
+    private void onUpdateReceivedCommon(Update update) {
+        if (update.hasMessage() && update.getMessage().hasText()) {
+            if (update.hasMessage() && update.getMessage().hasText()) {
+                Message message = update.getMessage();
+                User user = message.getFrom();
+                Long chatId = update.getMessage().getChatId();
+                logger.info(user.getFirstName() + ", chatId " + chatId + ", wrote from common state " + message.getText());
+                switch (message.getText()) {
+                    case "Выйти из чата" -> {
+                        ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove(true, true);
+                        SendMessage msg = new SendMessage();
+                        msg.setText("Клавиатура удалена.");
+                        msg.setChatId(chatId);
+                        msg.setReplyMarkup(keyboardRemove);
+                        executeAndSendMessage(msg);
+                    }
+                    default -> sendText(chatId, ALTERNATIVE_TEXT);
+                }
             }
         } else if (update.hasCallbackQuery()) {
             String callbackData = update.getCallbackQuery().getData();
             Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
             Long chatId = update.getCallbackQuery().getMessage().getChatId();
+            User user = update.getCallbackQuery().getFrom();
 
             switch (callbackData) {
                 case "HELP_BUTTON" -> {
@@ -122,13 +277,14 @@ public class TelegramBot extends TelegramLongPollingBot {
                     messageText.setMessageId(messageId);
                     executeAndEditMessage(messageText);
                 }
-                case "CLEAR_BUTTON" -> {
-                    String text = "Точно всё понятно?";
-                    EditMessageText messageText = new EditMessageText();
-                    messageText.setChatId(chatId);
-                    messageText.setText(text);
-                    messageText.setMessageId(messageId);
-                    executeAndEditMessage(messageText);
+                case "DELETE" -> {
+                    DeleteMessage deleteMessage = DeleteMessage.builder().chatId(chatId).messageId(messageId).build();
+                    try {
+                        execute(deleteMessage);
+                    } catch (TelegramApiException e) {
+                        logger.error("Error deleting message: " + e.toString());
+                    }
+                    logger.info(user.getFirstName() + ", chatId " + chatId + " deleted help message");
                 }
                 case "SHELTER_SELECT" -> {
                     sendText(chatId, "Выберите приют:");
@@ -157,6 +313,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                     } else if (callbackData.startsWith("ОСТАЛЬНЫЕ")) {
                         Long shelterId = getIdFromCallbackData(callbackData);
                         menuPetSelect(chatId, shelterId, "Остальные");
+                    } else if (callbackData.startsWith("VOLUNTEER_CHAT")) {
+                        Long shelterId = getIdFromCallbackData(callbackData);
+                        menuVolunteerChat(chatId, shelterId);
                     } else {
                         sendText(chatId, ALTERNATIVE_TEXT);
                     }
@@ -165,34 +324,79 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    private void onUpdateReceivedVolunteerChat(Update update) {
+        if (update.hasMessage() && update.getMessage().hasText()
+                && update.getMessage().getText().equals("Выйти из чата")) {
+
+            Long volunteerChatId = 1722853186L; // must be retrieved fom DB using shelterId
+            ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove(true, true);
+            SendMessage message = new SendMessage();
+            Long chatId = update.getMessage().getChatId();
+            User user = update.getMessage().getFrom();
+            message.setText("Отправка сообщений волонтеру отключена");
+            message.setChatId(chatId);
+            message.setReplyMarkup(keyboardRemove);
+            executeAndSendMessage(message);
+            logger.info(user + " chatId " + chatId + " closed chat with volunteerId " + volunteerChatId);
+            botStates.put(chatId, BotState.COMMON);
+        } else if (update.hasMessage() && update.getMessage().hasText()) {
+            Long volunteerChatId = 1722853186L; // must be retrieved fom DB using shelterId
+            User user = update.getMessage().getFrom();
+            Long chatId = update.getMessage().getChatId();
+            Integer messageId = update.getMessage().getMessageId();
+            ForwardMessage forwardMessage = new ForwardMessage(volunteerChatId.toString(), chatId.toString(), messageId);
+
+
+            // ЭТО КОД ДЛЯ ОТПРАВКИ ОТВЕТА НА СООБЩЕНИЕ, ЕГО БУДЕТ ИСПОЛЬВОВАТЬ ВОЛОНТЕР ПРИ ОБЩЕНИИ С КЛИЕНТОМ
+            if (update.getMessage().getReplyToMessage() != null) {
+
+                System.out.println(update.getMessage().getFrom());
+                System.out.println();
+                System.out.println(update.getMessage().getReplyToMessage().getForwardFrom().getId());
+
+                SendMessage m = new SendMessage();
+                m.setChatId(6725110697L);
+                m.setText("Working");
+                executeAndSendMessage(m);
+            }
+
+
+            // КОНЕЦ КОДА ДЛЯ ОТВЕТА НА СООБЩЕНИЕ
+
+
+            try {
+                execute(forwardMessage);
+            } catch (TelegramApiException e) {
+                logger.error("Error executing message: " + e.toString());
+            }
+            logger.info(user.getFirstName() + ", chatId " + chatId + ", wrote to volunteer chatId " + volunteerChatId + " " + update.getMessage().getText());
+        }
+    }
+
+    private void onUpdateReceivedReport(Update update) {
+
+    }
+
+    private void onUpdateReceivedCollectData(Update update) {
+
+    }
+
+    private void onUpdateVolunteer(Update update) {
+
+    }
+
+
     private void help(Long chatId) {
-        SendMessage message = createMessage(chatId, "Инструкция по применению.");
-        String[][][] buttons = {{{"Help", "HELP_BUTTON"}, {"Ok", "CLEAR_BUTTON"}}};
+        String text = "Взаимодействие с ботом производится путем нажатия кнопок под соответствующим сообщением. " +
+                "\nИногда кнопки могут быть заблокированы, если Вы находитесь в режиме прямого диалога с сотрудником приюта или " +
+                "создаете отчет об усыновлении питомца. Воспользуйтесь командой /start, если хотите выйти в начало из меню диалога или отчета. " +
+                "Для простого выхода из режима диалога воспользуйтесь кнопкой внизу. Для отправки отчета также предусмотрена кнопка внизу окна, " +
+                "при выходе из отчета командой /start отчет не отправится. В случае разрыва связи или перегруженности бота бот также может " +
+                "не реагировать на кнопки. Надеемся на понимание.";
+
+        String[][][] buttons = {{{"Ok", "DELETE"}}};
         InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
-        message.setReplyMarkup(inlineKeyboardMarkup);
-
-        // //           Code written below is for creating keyboard buttons at the bottom of the screen, not mapped to particular message
-// //           Can be used to activate chat with volunteer
-
-        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
-        List<KeyboardRow> keyboardRows = new ArrayList<>();
-
-        KeyboardRow row = new KeyboardRow();
-        row.addAll(List.of("Старт"));
-        keyboardRows.add(row);
-
-        row = new KeyboardRow();
-        row.addAll(List.of("Button 2", "Button 3"));
-        keyboardRows.add(row);
-
-        row = new KeyboardRow();
-        row.addAll(List.of("Button 4", "Убрать клавиатуру"));
-        keyboardRows.add(row);
-
-        keyboardMarkup.setKeyboard(keyboardRows);
-        keyboardMarkup.setResizeKeyboard(true); // resizes keyboard to smaller size
-        message.setReplyMarkup(keyboardMarkup);
-
+        SendMessage message = SendMessage.builder().chatId(chatId).text(text).replyMarkup(inlineKeyboardMarkup).build();
         executeAndSendMessage(message); // отображение сообщения в чате, отправка в чат
     }
 
@@ -379,6 +583,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         String[][][] buttons = {{{"Как взять животное из приюта?", "HOW_TO" + shelter.get(2)}},
                 {{"Выбрать питомца", "ANIMAL_TYPES" + shelter.get(2)}},
                 {{"Оставьте свой номер и мы Вам перезвоним", "COLLECT_DATA"}},
+                {{"Позвать волонтера", "VOLUNTEER_CHAT" + shelter.get(2)}},
                 {{"Вернуться к выбору приюта", "SHELTER_SELECT"}}
         };
         InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
@@ -564,5 +769,35 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    private void menuVolunteerChat(Long chatId, Long shelterId) {
+        List<List<String>> shelters = new ArrayList<>();
+        shelters.add(List.of("Солнышко", "Адрес: Москва, ул. Академика Королева, 13", "0", "Режим работы:\nПонедельник - пятница: с 7-00 до 20-00 без обеда и выходных."));
+        shelters.add(List.of("Дружок", "Адрес: Ижевск, ул. Боевой славы, 5", "1", "Режим работы:\nПонедельник - пятница: с 8-00 до 21-00 без обеда и выходных."));
+        shelters.add(List.of("На Невском", "Адрес: Санкт-Петербург, Невский проспект, 18", "2", "Режим работы:\nПонедельник - пятница: с 6-00 до 20-00 без обеда и выходных."));
 
+        List<String> shelter = new ArrayList<>();
+        try {
+            shelter = shelters.stream()
+                    .filter(s -> Long.valueOf(s.get(2)).equals(shelterId))
+                    .findFirst()
+                    .orElseThrow(NullPointerException::new);
+        } catch (NullPointerException e) {
+            logger.error("Shelter id: " + shelterId.toString() + " not found.");
+            e.printStackTrace();
+        }
+
+        botStates.put(chatId, BotState.VOLUNTEER_CHAT);
+        SendMessage message = createMessage(chatId, "Теперь Ваши сообщения будут доставлены в приют дежурному волонтеру из приюта " + shelter.get(0) + "\nДля выхода из чата с волонтером нажмите кнопку \"Выйти из чата\" или отправьте сообщение с текстом \"Выйти из чата\"");
+
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        List<KeyboardRow> keyboardRows = new ArrayList<>();
+        KeyboardRow row = new KeyboardRow();
+        row.addAll(List.of("Выйти из чата"));
+        keyboardRows.add(row);
+        keyboardMarkup.setKeyboard(keyboardRows);
+        keyboardMarkup.setResizeKeyboard(true); // resizes keyboard to smaller size
+        keyboardMarkup.setOneTimeKeyboard(false);
+        message.setReplyMarkup(keyboardMarkup);
+        executeAndSendMessage(message); // отображение сообщения в чате, отправка в чат
+    }
 }
