@@ -1,7 +1,6 @@
 package pro.sky.javacourse.AnimalShelterBot.telegram_bot;
 
 import jakarta.annotation.PostConstruct;
-import jakarta.validation.constraints.Null;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,6 +19,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
+import pro.sky.javacourse.AnimalShelterBot.service.BotService;
 import pro.sky.javacourse.AnimalShelterBot.telegram_bot.menu.BotState;
 
 import java.util.ArrayList;
@@ -32,6 +32,7 @@ import java.util.Map;
 public class TelegramBot extends TelegramLongPollingBot {
     private final String botUserName;
     private String botToken;
+    private final BotService botService;
     private final Logger logger = LoggerFactory.getLogger(TelegramBot.class);
     private final String WELCOME = "Привет!\n\nЭто телеграм бот для поиска питомца. " +
             "Наша команда волонтеров будет счастлива, если удастся найти новый дом для любого из наших подопечных! " +
@@ -39,7 +40,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final String ALTERNATIVE_TEXT = "Неизвестная команда!";
     private BotState keyboardState;
     private final Map<Long, BotState> botStates = new HashMap<Long, BotState>();
-    private final Map<Long, Long> shelterIdByChatId = new HashMap<Long, Long>();
+//    private final Map<Long, Long> shelterIdByChatId = new HashMap<Long, Long>();
 
 
     /**
@@ -48,9 +49,10 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param botToken    telegram bot token from BotFather
      * @param botUserName name of bot and name of postgreSQL dataBase
      */
-    public TelegramBot(@Value("${telegram.bot.token}") String botToken, @Value("${spring.datasource.username}") String botUserName) {
+    public TelegramBot(@Value("${telegram.bot.token}") String botToken, @Value("${spring.datasource.username}") String botUserName, BotService botService) {
         super(botToken);
         this.botUserName = botUserName;
+        this.botService = botService;
     }
 
 
@@ -115,7 +117,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     return;
                 }
                 case "/help" -> {
-                    help(chatId);
+                    menuHelp(chatId);
                     return;
                 }
             }
@@ -127,122 +129,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-
-    //    @Override
-//    public void onUpdateReceived(Update update) {
-//        if (update.hasMessage() && update.getMessage().hasText()) {
-//            Message message = update.getMessage();
-//            User user = message.getFrom();
-//            Long chatId = update.getMessage().getChatId();
-//            logger.info(user.getFirstName() + ", chatId " + chatId + ", wrote " + message.getText());
-//            switch (message.getText()) {
-//                // "/start" command should close all unfinished tasks anr return user to the beginning
-//                case "/start" -> {
-//                    if (keyboardStates.get(chatId) != BotState.COMMON) {
-//                        keyboardStates.put(chatId, BotState.COMMON);
-//                    }
-//                    sendText(chatId, WELCOME);
-//                    menuShelterSelect(chatId);
-//                }
-//                case "/help" -> help(chatId);
-//                case "Закрыть чат" -> {
-//                    ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove(true, true);
-//                    SendMessage msg = new SendMessage();
-//                    msg.setText("Чат с волонтером закрыт. Для открытия чата с приютом воспользуйтесь меню приюта.");
-//                    msg.setChatId(chatId);
-//                    msg.setReplyMarkup(keyboardRemove);
-//                    executeAndSendMessage(msg);
-//                    keyboardStates.put(chatId, BotState.COMMON);
-//                    //////////////// надо как то вернуться в меню приюта, т.е. нужен callback
-//                }
-//                default -> {
-//                    if (keyboardStates.get(chatId) == BotState.COMMON) sendText(chatId, ALTERNATIVE_TEXT);
-//                    if (keyboardStates.get(chatId) == BotState.VOLUNTEER_CHAT) {
-//                        sendText(volunteerChatId, message.getText());
-//                    }
-//                }
-//            }
-//        // common state
-//        if (keyboardStates.get(chatId) == BotState.COMMON) {
-//            if (keyboardStates.get(chatId) == BotState.COMMON) {
-//                switch (message.getText()) {
-//
-//                    case "Убрать клавиатуру" -> {
-//// This case is unfinished
-//                        ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove(true, true);
-//                        SendMessage msg = new SendMessage();
-//                        msg.setText("Клавиатура удалена.");
-//                        msg.setChatId(chatId);
-//                        msg.setReplyMarkup(keyboardRemove);
-//                        executeAndSendMessage(msg);
-//                    }
-//                    default -> sendText(chatId, ALTERNATIVE_TEXT);
-//                }
-//            } else if (update.hasCallbackQuery()) {
-//                String callbackData = update.getCallbackQuery().getData();
-//                Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
-//                Long chatId = update.getCallbackQuery().getMessage().getChatId();
-//
-//                switch (callbackData) {
-//                    case "HELP_BUTTON" -> {
-//                        String text = "Здесь должна быть помощь";
-//                        EditMessageText messageText = new EditMessageText();
-//                        messageText.setChatId(chatId);
-//                        messageText.setText(text);
-//                        messageText.setMessageId(messageId);
-//                        executeAndEditMessage(messageText);
-//                    }
-//                    case "CLEAR_BUTTON" -> {
-//                        String text = "Точно всё понятно?";
-//                        EditMessageText messageText = new EditMessageText();
-//                        messageText.setChatId(chatId);
-//                        messageText.setText(text);
-//                        messageText.setMessageId(messageId);
-//                        executeAndEditMessage(messageText);
-//                    }
-//                    case "SHELTER_SELECT" -> {
-//                        sendText(chatId, "Выберите приют:");
-//                        menuShelterSelect(chatId);
-//                    }
-//                    case "VOLUNTEER_CHAT" -> {
-//                        this.keyboardState = BotState.VOLUNTEER_CHAT;
-//                        menuVolunteerChat(chatId);
-//                    }
-//                    default -> {
-//                        if (callbackData.startsWith("SHELTER")) {
-//                            Long shelterId = getIdFromCallbackData(callbackData);
-//                            menuShelter(chatId, shelterId);
-//                        } else if (callbackData.startsWith("LOCATION_MAP")) {
-//                            menuLocation(update);
-//                        } else if (callbackData.startsWith("SEPARATE_SHELTER")) {
-//                            menuShelterSelect(update);
-//                        } else if (callbackData.startsWith("HOW_TO")) {
-//                            Long shelterId = getIdFromCallbackData(callbackData);
-//                            menuHowTo(chatId, shelterId);
-//                        } else if (callbackData.startsWith("ANIMAL_TYPES")) {
-//                            Long shelterId = getIdFromCallbackData(callbackData);
-//                            menuPetType(chatId, shelterId);
-//                        } else if (callbackData.startsWith("СОБАК")) {
-//                            Long shelterId = getIdFromCallbackData(callbackData);
-//                            menuPetSelect(chatId, shelterId, "Собака");
-//                        } else if (callbackData.startsWith("КОШК")) {
-//                            Long shelterId = getIdFromCallbackData(callbackData);
-//                            menuPetSelect(chatId, shelterId, "Кот");
-//                        } else if (callbackData.startsWith("ОСТАЛЬНЫЕ")) {
-//                            Long shelterId = getIdFromCallbackData(callbackData);
-//                            menuPetSelect(chatId, shelterId, "Остальные");
-//                        } else {
-//                            sendText(chatId, ALTERNATIVE_TEXT);
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//
-//
-//    }
-//
-//}
     private void onUpdateReceivedCommon(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
             if (update.hasMessage() && update.getMessage().hasText()) {
@@ -269,14 +155,6 @@ public class TelegramBot extends TelegramLongPollingBot {
             User user = update.getCallbackQuery().getFrom();
 
             switch (callbackData) {
-                case "HELP_BUTTON" -> {
-                    String text = "Здесь должна быть помощь";
-                    EditMessageText messageText = new EditMessageText();
-                    messageText.setChatId(chatId);
-                    messageText.setText(text);
-                    messageText.setMessageId(messageId);
-                    executeAndEditMessage(messageText);
-                }
                 case "DELETE" -> {
                     DeleteMessage deleteMessage = DeleteMessage.builder().chatId(chatId).messageId(messageId).build();
                     try {
@@ -297,7 +175,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     } else if (callbackData.startsWith("LOCATION_MAP")) {
                         menuLocation(update);
                     } else if (callbackData.startsWith("SEPARATE_SHELTER")) {
-                        menuShelterSelect(update);
+                        menuShelterCurrent(update);
                     } else if (callbackData.startsWith("HOW_TO")) {
                         Long shelterId = getIdFromCallbackData(callbackData);
                         menuHowTo(chatId, shelterId);
@@ -381,24 +259,10 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     }
 
-    private void onUpdateVolunteer(Update update) {
+    private void onUpdateReceivedVolunteer(Update update) {
 
     }
 
-
-    private void help(Long chatId) {
-        String text = "Взаимодействие с ботом производится путем нажатия кнопок под соответствующим сообщением. " +
-                "\nИногда кнопки могут быть заблокированы, если Вы находитесь в режиме прямого диалога с сотрудником приюта или " +
-                "создаете отчет об усыновлении питомца. Воспользуйтесь командой /start, если хотите выйти в начало из меню диалога или отчета. " +
-                "Для простого выхода из режима диалога воспользуйтесь кнопкой внизу. Для отправки отчета также предусмотрена кнопка внизу окна, " +
-                "при выходе из отчета командой /start отчет не отправится. В случае разрыва связи или перегруженности бота бот также может " +
-                "не реагировать на кнопки. Надеемся на понимание.";
-
-        String[][][] buttons = {{{"Ok", "DELETE"}}};
-        InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
-        SendMessage message = SendMessage.builder().chatId(chatId).text(text).replyMarkup(inlineKeyboardMarkup).build();
-        executeAndSendMessage(message); // отображение сообщения в чате, отправка в чат
-    }
 
     /**
      * Example of method that creates keyboard buttons menu on the bottom of telegram chat window.
@@ -420,6 +284,14 @@ public class TelegramBot extends TelegramLongPollingBot {
         message.setChatId(chatId);
         message.setText(messageText);
         return message;
+    }
+
+    private boolean isVolunteer(Long chatId) {
+        return botService.isVolunteer(chatId);
+    }
+
+    private Long getIdFromCallbackData(String callbackData) {
+        return Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
     }
 
     private InlineKeyboardButton createInlineKeyBoardButton(String name, String callbackData) {
@@ -454,10 +326,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         return keyboardMarkup;
     }
 
-    private Long getIdFromCallbackData(String callbackData) {
-        return Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
-    }
-
     /**
      * Method for execute telegram SendMessage message
      * and handle {@link TelegramApiException} in a single line of code.
@@ -487,7 +355,23 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
 
+
     // Retrieving particular menu / bot message
+
+
+    protected void menuHelp(Long chatId) {
+        String text = "Взаимодействие с ботом производится путем нажатия кнопок под соответствующим сообщением. " +
+                "\nИногда кнопки могут быть заблокированы, если Вы находитесь в режиме прямого диалога с сотрудником приюта или " +
+                "создаете отчет об усыновлении питомца. Воспользуйтесь командой /start, если хотите выйти в начало из меню диалога или отчета. " +
+                "Для простого выхода из режима диалога воспользуйтесь кнопкой внизу. Для отправки отчета также предусмотрена кнопка внизу окна, " +
+                "при выходе из отчета командой /start отчет не отправится. В случае разрыва связи или перегруженности бота бот также может " +
+                "не реагировать на кнопки. Надеемся на понимание.";
+
+        String[][][] buttons = {{{"Ok", "DELETE"}}};
+        InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
+        SendMessage message = SendMessage.builder().chatId(chatId).text(text).replyMarkup(inlineKeyboardMarkup).build();
+        executeAndSendMessage(message); // отображение сообщения в чате, отправка в чат
+    }
 
     /**
      * Specific method for construct and send Shelter select menu<br>
@@ -497,12 +381,13 @@ public class TelegramBot extends TelegramLongPollingBot {
      *
      * @param chatId chat identity of type Long
      */
-    private void menuShelterSelect(Long chatId) {
+    protected void menuShelterSelect(Long chatId) {
         List<List<String>> shelters = new ArrayList<>();
         shelters.add(List.of("Солнышко", "Адрес: Москва, ул. Академика Королева, 13", "0"));
         shelters.add(List.of("Дружок", "Адрес: Ижевск, ул. Боевой славы, 5", "1"));
         shelters.add(List.of("На Невском", "Адрес: Санкт-Петербург, Невский проспект, 18", "2"));
 
+        // Удалить createMessage, вместо него использовать MessageBuilder
         for (List<String> shelter : shelters) {
             SendMessage shelterMessage = createMessage(chatId, shelter.get(0) + "\n\n" + shelter.get(1));
             String[][][] buttons = {{{"Схема проезда", "LOCATION_MAP" + shelter.get(2)}, {"Выбрать", "SHELTER" + shelter.get(2)}}};
@@ -518,11 +403,11 @@ public class TelegramBot extends TelegramLongPollingBot {
      *
      * @param update of Update class transfers information like chatId, messageId, callbackData including shelterId
      */
-    private void menuShelterSelect(Update update) {
+    protected void menuShelterCurrent(Update update) {
         String callbackData = update.getCallbackQuery().getData();
         Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
         Long chatId = update.getCallbackQuery().getMessage().getChatId();
-        Long shelterId = Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
+        Long shelterId = getIdFromCallbackData(callbackData);
 
         List<List<String>> shelters = new ArrayList<>();
         shelters.add(List.of("Солнышко", "Адрес: Москва, ул. Академика Королева, 13", "0"));
@@ -561,7 +446,7 @@ public class TelegramBot extends TelegramLongPollingBot {
      *
      * @param chatId chat identity of type Long, shelterId - shelter identity of type Long
      */
-    private void menuShelter(Long chatId, Long shelterId) {
+    protected void menuShelter(Long chatId, Long shelterId) {
         List<List<String>> shelters = new ArrayList<>();
         shelters.add(List.of("Солнышко", "Адрес: Москва, ул. Академика Королева, 13", "0", "Режим работы:\nПонедельник - пятница: с 7-00 до 20-00 без обеда и выходных."));
         shelters.add(List.of("Дружок", "Адрес: Ижевск, ул. Боевой славы, 5", "1", "Режим работы:\nПонедельник - пятница: с 8-00 до 21-00 без обеда и выходных."));
@@ -596,11 +481,11 @@ public class TelegramBot extends TelegramLongPollingBot {
      *
      * @param update of Update class transfers information like chatId, messageId, callbackData including shelterId
      */
-    private void menuLocation(Update update) {
+    protected void menuLocation(Update update) {
         String callbackData = update.getCallbackQuery().getData();
         Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
         Long chatId = update.getCallbackQuery().getMessage().getChatId();
-        Long shelterId = Long.parseLong(callbackData.replaceAll("[^0-9]", ""), 10);
+        Long shelterId = getIdFromCallbackData(callbackData);
 
         List<List<String>> shelters = new ArrayList<>();
         shelters.add(List.of("Солнышко", "Адрес: Москва, ул. Академика Королева, 13", "0", "Режим работы:\nПонедельник - пятница: с 7-00 до 20-00 без обеда и выходных."));
@@ -630,7 +515,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         executeAndEditMessage(messageText);
     }
 
-    private void menuHowTo(Long chatId, Long shelterId) {
+    protected void menuHowTo(Long chatId, Long shelterId) {
         List<List<String>> shelters = new ArrayList<>();
         // String howTo should be text from database, that can be unique for each shelter
         String howTo = "Чтобы взять животное из приюта необходимо будет посетить приют и выбрать питомца. Адрес и режим работы приюта можно узнать, просмотрев информацию из предыдущих меню.\n" +
@@ -666,7 +551,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         executeAndSendMessage(message);
     }
 
-    private void menuPetType(Long chatId, Long shelterId) {
+    protected void menuPetType(Long chatId, Long shelterId) {
 // нужно получить отдельные (distinct) типы животных из базы данных в зависимости от shelterId,
 //        у меня пока что shelterId от 0 до 2 включительно, поэтому я приравниваю его к индексу,
 //        но в будущем это не сработает
@@ -711,7 +596,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void menuPetSelect(Long chatId, Long shelterId, String petType) {
+    protected void menuPetSelect(Long chatId, Long shelterId, String petType) {
         List<List<String>> allPets = new ArrayList<>();
         // Long petId | String name | String petType | String info | Integer age | Long shelterId
         allPets.add(List.of("0", "Шарик", "Собака", "Добрый, отзывчивый пес.", "10", "0"));
@@ -769,7 +654,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void menuVolunteerChat(Long chatId, Long shelterId) {
+    protected void menuVolunteerChat(Long chatId, Long shelterId) {
         List<List<String>> shelters = new ArrayList<>();
         shelters.add(List.of("Солнышко", "Адрес: Москва, ул. Академика Королева, 13", "0", "Режим работы:\nПонедельник - пятница: с 7-00 до 20-00 без обеда и выходных."));
         shelters.add(List.of("Дружок", "Адрес: Ижевск, ул. Боевой славы, 5", "1", "Режим работы:\nПонедельник - пятница: с 8-00 до 21-00 без обеда и выходных."));
@@ -787,7 +672,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
 
         botStates.put(chatId, BotState.VOLUNTEER_CHAT);
-        SendMessage message = createMessage(chatId, "Теперь Ваши сообщения будут доставлены в приют дежурному волонтеру из приюта " + shelter.get(0) + "\nДля выхода из чата с волонтером нажмите кнопку \"Выйти из чата\" или отправьте сообщение с текстом \"Выйти из чата\"");
+        SendMessage message = createMessage(chatId, "Теперь Ваши сообщения будут доставлены дежурному волонтеру в приют " + shelter.get(0) + "\nДля выхода из чата с волонтером нажмите кнопку \"Выйти из чата\" или отправьте сообщение с текстом \"Выйти из чата\"");
 
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
         List<KeyboardRow> keyboardRows = new ArrayList<>();
