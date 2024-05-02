@@ -104,6 +104,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                     if (botStates.get(chatId) == BotState.VOLUNTEER_CHAT) {
                         sendText(chatId, "Чат с волонтером закрыт. Открыть чат можно выбрав приют.");
                     }
+                    if (botStates.get(chatId) == BotState.REPORT) {
+                        sendText(chatId, "Создание отчета отменено.");
+                    }
                     botStates.put(chatId, BotState.COMMON);
                     ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove(true, true);
                     SendMessage msg = SendMessage.builder().chatId(chatId).text(WELCOME).replyMarkup(keyboardRemove).build();
@@ -114,6 +117,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     }
                     logger.info(user.getFirstName() + ", chatId " + chatId + ", has removed keyboard using start command");
                     menuShelterSelect(chatId);
+                    menuReportStart(chatId);
                     return;
                 }
                 case "/help" -> {
@@ -126,6 +130,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         switch (botStates.get(chatId)) {
             case COMMON -> onUpdateReceivedCommon(update);
             case VOLUNTEER_CHAT -> onUpdateReceivedVolunteerChat(update);
+            case REPORT -> onUpdateReceivedReport(update);
         }
     }
 
@@ -168,6 +173,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                     sendText(chatId, "Выберите приют:");
                     menuShelterSelect(chatId);
                 }
+                case "REPORT_PET_SELECT" -> {
+                    menuReportPetSelect(chatId);
+                }
                 default -> {
                     if (callbackData.startsWith("SHELTER")) {
                         Long shelterId = getIdFromCallbackData(callbackData);
@@ -194,6 +202,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                     } else if (callbackData.startsWith("VOLUNTEER_CHAT")) {
                         Long shelterId = getIdFromCallbackData(callbackData);
                         menuVolunteerChat(chatId, shelterId);
+                    } else if (callbackData.startsWith("REPORT")) {
+                        Long petId = getIdFromCallbackData(callbackData);
+                        menuReportPetCurrent(petId);
                     } else {
                         sendText(chatId, ALTERNATIVE_TEXT);
                     }
@@ -279,15 +290,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         executeAndSendMessage(sendMessage);
     }
 
-    public SendMessage createMessage(Long chatId, String messageText) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId);
-        message.setText(messageText);
-        return message;
-    }
-
-    private boolean isVolunteer(Long chatId) {
-        return botService.isVolunteer(chatId);
+    private boolean isVolunteer(Long chatId, Long shelterId) {
+        return botService.isVolunteer(chatId, shelterId);
     }
 
     private Long getIdFromCallbackData(String callbackData) {
@@ -355,7 +359,6 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
 
-
     // Retrieving particular menu / bot message
 
 
@@ -387,9 +390,10 @@ public class TelegramBot extends TelegramLongPollingBot {
         shelters.add(List.of("Дружок", "Адрес: Ижевск, ул. Боевой славы, 5", "1"));
         shelters.add(List.of("На Невском", "Адрес: Санкт-Петербург, Невский проспект, 18", "2"));
 
-        // Удалить createMessage, вместо него использовать MessageBuilder
         for (List<String> shelter : shelters) {
-            SendMessage shelterMessage = createMessage(chatId, shelter.get(0) + "\n\n" + shelter.get(1));
+            SendMessage shelterMessage = SendMessage.builder()
+                    .chatId(chatId)
+                    .text(shelter.get(0) + "\n\n" + shelter.get(1)).build();
             String[][][] buttons = {{{"Схема проезда", "LOCATION_MAP" + shelter.get(2)}, {"Выбрать", "SHELTER" + shelter.get(2)}}};
             InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
             shelterMessage.setReplyMarkup(inlineKeyboardMarkup);
@@ -462,16 +466,26 @@ public class TelegramBot extends TelegramLongPollingBot {
             e.printStackTrace();
         }
 
-        SendMessage shelterMessage = createMessage(chatId,
-                shelter.get(0) + "\n" + shelter.get(3));
+        SendMessage shelterMessage = SendMessage.builder()
+                .chatId(chatId)
+                .text(shelter.get(0) + "\n" + shelter.get(3)).build();
 
-        String[][][] buttons = {{{"Как взять животное из приюта?", "HOW_TO" + shelter.get(2)}},
-                {{"Выбрать питомца", "ANIMAL_TYPES" + shelter.get(2)}},
-                {{"Оставьте свой номер и мы Вам перезвоним", "COLLECT_DATA"}},
-                {{"Позвать волонтера", "VOLUNTEER_CHAT" + shelter.get(2)}},
-                {{"Вернуться к выбору приюта", "SHELTER_SELECT"}}
-        };
-        InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> keyboardRows = new ArrayList<>();
+
+        if (botService.isVolunteer(chatId, Long.parseLong(shelter.get(2)))) {
+            keyboardRows.add(List.of(createInlineKeyBoardButton("Проверить отчеты опекунов", "REPORT_CHECK" + shelter.get(2))));
+        }
+        if (true) { // если у опекуна есть питомцы на испытательном сроке
+            keyboardRows.add(List.of(createInlineKeyBoardButton("Сдать отчет", "REPORT")));
+        }
+
+        keyboardRows.add(List.of(createInlineKeyBoardButton("Как взять животное из приюта?", "HOW_TO" + shelter.get(2))));
+        keyboardRows.add(List.of(createInlineKeyBoardButton("Выбрать питомца", "ANIMAL_TYPES" + shelter.get(2))));
+        keyboardRows.add(List.of(createInlineKeyBoardButton("Оставьте Ваш номер и мы Вам перезвоним", "COLLECT_DATA" + shelter.get(2))));
+        keyboardRows.add(List.of(createInlineKeyBoardButton("Позвать волонтера", "VOLUNTEER_CHAT" + shelter.get(2))));
+        keyboardRows.add(List.of(createInlineKeyBoardButton("Вернуться к выбору приюта", "SHELTER_SELECT")));
+        inlineKeyboardMarkup.setKeyboard(keyboardRows);
         shelterMessage.setReplyMarkup(inlineKeyboardMarkup);
         executeAndSendMessage(shelterMessage);
     }
@@ -544,7 +558,8 @@ public class TelegramBot extends TelegramLongPollingBot {
             e.printStackTrace();
         }
 
-        SendMessage message = createMessage(chatId, shelter.get(0) + "\n\n" + shelter.get(3));
+        SendMessage message = SendMessage.builder().chatId(chatId)
+                .text(shelter.get(0) + "\n\n" + shelter.get(3)).build();
         String[][][] buttons = {{{"OK", "SHELTER" + shelter.get(2)}}};
         InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
         message.setReplyMarkup(inlineKeyboardMarkup);
@@ -578,8 +593,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             menuPetSelect(chatId, shelterId, petType);
         } else {
 
-            SendMessage message = createMessage(chatId, "Выберите тип питомца");
-
+            SendMessage message = SendMessage.builder().chatId(chatId).text("Выберите тип питомца").build();
             String[][][] buttons = new String[petTypes.size() + 1][1][2]; // массив из кнопок по 1 в ряд, количество рядов
             // равно размеру списка типов животных + 1 ряд для кнопки "Назад", callBackData возвращаемая кнопкой с типом
             // животного равна типу животного в верхнем регистре + Id приюта, чтобы сделать выборку.
@@ -627,18 +641,18 @@ public class TelegramBot extends TelegramLongPollingBot {
         // питомца могут забрать и список может внезапно оказаться пустым
         SendMessage message = new SendMessage();
         if (pets.isEmpty()) {
-            message = createMessage(chatId, "Нет питомцев для усыновления");
+            message = SendMessage.builder().chatId(chatId).text("Нет питомцев для усыновления").build();
             String[][][] buttons = {{{"Назад", "SHELTER" + shelterId}}};
             InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
             message.setReplyMarkup(inlineKeyboardMarkup);
             executeAndSendMessage(message);
         } else {
             for (List<String> pet : pets) {
-                message = createMessage(chatId, pet.get(1) + "\n\n" + pet.get(3) +
-                        " Возраст " + pet.get(5) + " полных лет");
+                message = SendMessage.builder().chatId(chatId)
+                        .text(pet.get(1) + "\n\n" + pet.get(3) + " Возраст " + pet.get(5) + " полных лет").build();
                 executeAndSendMessage(message);
             }
-            message = createMessage(chatId, "Вернуться в предыдущее меню");
+            message = SendMessage.builder().chatId(chatId).text("Вернуться в предыдущее меню").build();
             // for one type of animals pet type selection menu won't be created
             if (petTypes == 1) {
                 String[][][] buttons = {{{"Назад", "SHELTER" + shelterId}}};
@@ -672,8 +686,10 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
 
         botStates.put(chatId, BotState.VOLUNTEER_CHAT);
-        SendMessage message = createMessage(chatId, "Теперь Ваши сообщения будут доставлены дежурному волонтеру в приют " + shelter.get(0) + "\nДля выхода из чата с волонтером нажмите кнопку \"Выйти из чата\" или отправьте сообщение с текстом \"Выйти из чата\"");
-
+        SendMessage message = SendMessage.builder().chatId(chatId)
+                .text("Теперь Ваши сообщения будут доставлены дежурному волонтеру в приют " + shelter.get(0)
+                        + "\nДля выхода из чата с волонтером нажмите кнопку \"Выйти из чата\" или отправьте сообщение с текстом \"Выйти из чата\"")
+                .build();
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
         List<KeyboardRow> keyboardRows = new ArrayList<>();
         KeyboardRow row = new KeyboardRow();
@@ -685,4 +701,69 @@ public class TelegramBot extends TelegramLongPollingBot {
         message.setReplyMarkup(keyboardMarkup);
         executeAndSendMessage(message); // отображение сообщения в чате, отправка в чат
     }
+
+    protected void menuReportStart(Long chatId) {
+        if (true) { // если у опекуна есть питомцы на испытательном сроке
+            SendMessage message = SendMessage.builder().chatId(chatId).text("Сдать отчет").build();
+            String[][][] buttons = {{{"Начать", "REPORT_PET_SELECT"}}};
+            InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
+            message.setReplyMarkup(inlineKeyboardMarkup);
+            executeAndSendMessage(message);
+        }
+    }
+
+    protected void menuReportPetSelect(Long chatId) {
+        List<List<String>> petsOnAdoption = new ArrayList<>();
+        // Long petId | String name | String petType | String info | Integer age | Long shelterId | Long caretakerChatId
+        // вероятно придется получать caretakerChatId из базы по caretakerId
+        petsOnAdoption.add(List.of("0", "Шарик", "Собака", "Добрый, отзывчивый пес.", "10", "0", "1722853186"));
+        petsOnAdoption.add(List.of("1", "Барбос", "Собака", "Надежный охранник.", "3", "0", "6725110697"));
+        petsOnAdoption.add(List.of("10", "Тайга", "Собака", "Тренированная охотничья собака. Девочка.", "6", "2", "6725110697"));
+        List<List<String>> pets = petsOnAdoption.stream()
+                .filter(p -> (Long.parseLong(p.get(6)) == chatId))
+                .toList();
+        if (pets.size() > 1) {
+            for (List<String> pet : petsOnAdoption) {
+                SendMessage petMessage = SendMessage.builder()
+                        .chatId(chatId)
+                        .text(pet.get(1) + "\n" + pet.get(2)).build();
+                String[][][] buttons = {{{"Выбрать", "REPORT" + pet.get(0)}}};
+                InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
+                petMessage.setReplyMarkup(inlineKeyboardMarkup);
+                executeAndSendMessage(petMessage);
+            }
+        } else {
+            menuReportPetCurrent(Long.parseLong(petsOnAdoption.get(0).get(0)));
+        }
+    }
+
+    protected void menuReportPetCurrent(Long petId) {
+        List<List<String>> petsOnAdoption = new ArrayList<>();
+        // нужно получить chatId из объекта Pet из базы
+        petsOnAdoption.add(List.of("0", "Шарик", "Собака", "Добрый, отзывчивый пес.", "10", "0", "1722853186"));
+        petsOnAdoption.add(List.of("1", "Барбос", "Собака", "Надежный охранник.", "3", "0", "6725110697"));
+        petsOnAdoption.add(List.of("10", "Тайга", "Собака", "Тренированная охотничья собака. Девочка.", "6", "2", "6725110697"));
+        Long chatId = petsOnAdoption.stream()
+                .filter(pet -> Long.parseLong(pet.get(0)) == petId).findFirst().map(p -> Long.parseLong(p.get(6))).get();
+
+        SendMessage message = SendMessage.builder().chatId(chatId)
+                .text("Отправьте сообщение с текстом отчета:\n" +
+                        "- Опишите рацион животного.\n" +
+                        "- Общее самочуствие и привыкание к новому месту." +
+                        "- Изменения в поведении: отказ от старых привычек, приобретение новых." +
+                        "\n Отменить отправку отчета Вы можете по кнопке внизу окна.").build();
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        List<KeyboardRow> keyboardRows = new ArrayList<>();
+        KeyboardRow row = new KeyboardRow();
+        row.addAll(List.of("Отменить отчет"));
+        keyboardRows.add(row);
+        keyboardMarkup.setKeyboard(keyboardRows);
+        keyboardMarkup.setResizeKeyboard(true); // resizes keyboard to smaller size
+        keyboardMarkup.setOneTimeKeyboard(false);
+        message.setReplyMarkup(keyboardMarkup);
+        executeAndSendMessage(message); // отображение сообщения в чате, отправка в чат
+
+    }
 }
+
+

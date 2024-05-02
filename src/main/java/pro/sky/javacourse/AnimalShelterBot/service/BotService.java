@@ -12,7 +12,7 @@ public interface BotService {
     // List<Caretaker> getCaretakers(); // возвращает список всех опекунов
     // List<Caretaker> getActualCaretakers(); // Возвращает тех опекунов, на которых числятся питомцы у которых дата окончания испытательного срока больше LocalDateTime.now();
     // Caretaker getCaretakerById(Long CaretakerId); // Возвращает опекуна по Id;
-    Boolean isVolunteer(Long chatId);
+    Boolean isVolunteer(Long chatId, Long shelterId);
 
     // Нужно в приют добавить поле с дежурным волонтером в класс приют
 }
