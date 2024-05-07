@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 // Class TelegramBot extends abstract class TelegramLongPollingBot from Telegram API
-@Component
+
 public class TelegramBot extends TelegramLongPollingBot {
     private final String botUserName;
     private String botToken;

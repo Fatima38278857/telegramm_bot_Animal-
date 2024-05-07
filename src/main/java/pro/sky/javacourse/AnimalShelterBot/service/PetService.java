@@ -1,3 +1,4 @@
+/*
 package pro.sky.javacourse.AnimalShelterBot.service;
 
 import pro.sky.javacourse.AnimalShelterBot.model.Shelter;
@@ -16,8 +17,7 @@ public interface PetService {
 
     List<Pet> getByType(String type);
 
-    Shelter getShelter(Long id);
-
     int getPetsCount();
 
 }
+*/
