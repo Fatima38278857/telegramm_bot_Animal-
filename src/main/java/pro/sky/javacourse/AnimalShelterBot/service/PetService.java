@@ -10,6 +10,6 @@ public interface PetService {
     Pet update(Long id, Pet pet);
     void delete(Long id);
     List<Pet> getByType(String type);
-    Shelter getShelter(Long id);
+//    Shelter getShelter(Long id);
     int getPetsCount();
 }

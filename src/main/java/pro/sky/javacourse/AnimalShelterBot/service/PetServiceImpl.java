@@ -34,7 +34,7 @@ public class PetServiceImpl implements PetService {
     public Pet update(Long id, Pet pet) {
         logger.info("update method was invoked");
         return petRepository.findById(id).map(petFromDb -> {
-            petFromDb.setCaretakerId(pet.getCaretakerId());
+//            petFromDb.setCaretakerId(pet.getCaretakerId());
             petFromDb.setShelter(pet.getShelter());
             return petRepository.save(petFromDb);
         }).orElse(null);
@@ -51,11 +51,11 @@ public class PetServiceImpl implements PetService {
         return null;
     }
 
-    @Override
+/*    @Override
     public Shelter getShelter(Long id) {
         return null;
     }
-
+*/
     @Override
     public int getPetsCount() {
         return 0;
