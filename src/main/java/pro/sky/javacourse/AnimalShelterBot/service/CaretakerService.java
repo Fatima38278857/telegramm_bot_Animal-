@@ -7,7 +7,7 @@ import java.util.Optional;
 
 public interface CaretakerService {
 
-    Caretaker addCaretaker(Long chatId,String name, String address);
+    Caretaker addCaretaker(Long chatId,String name, String address, String passport);
     Caretaker addCaretaker(Caretaker caretaker);
 
     void delete(Long id);

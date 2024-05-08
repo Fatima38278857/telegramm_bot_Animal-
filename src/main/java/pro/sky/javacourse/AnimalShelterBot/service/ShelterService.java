@@ -5,11 +5,12 @@ import pro.sky.javacourse.AnimalShelterBot.model.Volunteer;
 
 import java.awt.*;
 import java.util.List;
+import java.util.Set;
 
 public interface ShelterService {
     Shelter findingShelterByName(String name);
 
-    Shelter addShelter(String name, String address, String info, String regime, List<Image> locationMaps);
+    Shelter addShelter(String name, String address, String info, String regime);
 
     Shelter addShelter(Shelter shelter);
 
@@ -17,11 +18,13 @@ public interface ShelterService {
 
     Shelter update(Long id);
 
-    List<Volunteer> addVolunteer(String name, String address);
+    Volunteer addVolunteer(Long shelterId ,Volunteer volunteer);
 
     String getInfoAboutShelter(String name);
 
     Shelter findingShelterById(Long id);
 
     List<Shelter> getAllShelters();
+
+    Set<Volunteer> getSetOfVolunteers(Long id);
 }

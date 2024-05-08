@@ -11,6 +11,8 @@ import java.util.Optional;
 public interface CaretakerRepository extends JpaRepository<Caretaker,Long> {
     Caretaker findByChatId(Long chatId);
 
+
+
     Optional<Caretaker> findById(Long id);
 
     void deleteById(Long id);

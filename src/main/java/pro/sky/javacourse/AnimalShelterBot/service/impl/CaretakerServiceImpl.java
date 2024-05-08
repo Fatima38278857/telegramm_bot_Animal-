@@ -17,22 +17,44 @@ public class CaretakerServiceImpl implements CaretakerService {
     }
 
 
+    /**
+     * method for create caretaker and add it in a repository
+     * @param chatId
+     * @param name
+     * @param address
+     * @param passport
+     * @return created caretaker
+     */
     @Override
-    public Caretaker addCaretaker(Long chatId, String name, String address) {
-        Caretaker caretaker = new Caretaker(chatId, name, address);
+    public Caretaker addCaretaker(Long chatId, String name, String address, String passport) {
+        Caretaker caretaker = new Caretaker(chatId, name, address, passport);
         return caretakerRepository.save(caretaker);
     }
 
+    /**
+     * save a caretaker in a repository
+     * @param caretaker
+     * @return
+     */
     @Override
     public Caretaker addCaretaker(Caretaker caretaker) {
         return caretakerRepository.save(caretaker);
     }
 
+    /**
+     * delete by id
+     * @param id
+     */
     @Override
     public void delete(Long id) {
         caretakerRepository.deleteById(id);
     }
 
+    /**
+     * get a caretakers name by id
+     * @param id
+     * @return String name
+     */
     @Override
     public String getNameById(Long id) {
         String caretakerName = caretakerRepository.findById(id).get().getName();
@@ -40,16 +62,30 @@ public class CaretakerServiceImpl implements CaretakerService {
 
     }
 
+    /**
+     * getting caretaker by id
+     * @param id
+     * @return Caretaker caretaker
+     */
     @Override
     public Optional<Caretaker> getById(Long id) {
         return caretakerRepository.findById(id);
     }
 
+    /**
+     * get all caretakers from repository
+     * @return List of Caretakers
+     */
     @Override
     public List<Caretaker> getAllCaretaker() {
         return caretakerRepository.findAll().stream().toList();
     }
 
+    /**
+     * set probation on caretaker
+     * @param bol
+     * @param name
+     */
     @Override
     public void setProbation(boolean bol, String name) {
         caretakerRepository.findByName(name).setOnProbation(bol);

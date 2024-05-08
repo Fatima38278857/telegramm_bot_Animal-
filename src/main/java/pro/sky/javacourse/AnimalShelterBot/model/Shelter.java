@@ -2,6 +2,8 @@ package pro.sky.javacourse.AnimalShelterBot.model;
 
 import jakarta.persistence.*;
 
+import java.util.Set;
+
 @Entity
 @Table(name = "shelter")
 public class Shelter {
@@ -14,14 +16,22 @@ public class Shelter {
     private String info;
     @Column(name = "regime")
     private String regime;
+    @Column(name = "address")
+    private String address;
+
+    @ManyToMany()
+    @Column(name = "volunteers")
+    private Set<Volunteer> volunteerSet;
+
 
     public Shelter() {
     }
 
-    public Shelter(String name, String info, String regime) {
+    public Shelter(String name, String info, String regime, String address) {
         this.name = name;
         this.info = info;
         this.regime = regime;
+        this.address = address;
     }
 
     public Long getId() {
@@ -51,6 +61,21 @@ public class Shelter {
         this.regime = regime;
     }
 
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public Set<Volunteer> getVolunteerSet() {
+        return volunteerSet;
+    }
+
+    public void setVolunteerSet(Set<Volunteer> volunteerSet) {
+        this.volunteerSet = volunteerSet;
+    }
 
 
     //------------------------------Inner class------------------------------//

@@ -20,13 +20,17 @@ public class Caretaker {
     private int dayOfGettingPet;
     @Column(name = "on_probation")
     private boolean onProbation;
+    @Column(name = "passport")
+    private String passport;
+
     public Caretaker() {
     }
 
-    public Caretaker(Long chatId, String name, String address) {
+    public Caretaker(Long chatId, String name, String address, String passport) {
         this.chatId = chatId;
         this.name = name;
         this.address = address;
+        this.passport = passport;
     }
 
 
@@ -89,4 +93,11 @@ public class Caretaker {
     }
 
 
+    public String getPassport() {
+        return passport;
+    }
+
+    public void setPassport(String passport) {
+        this.passport = passport;
+    }
 }

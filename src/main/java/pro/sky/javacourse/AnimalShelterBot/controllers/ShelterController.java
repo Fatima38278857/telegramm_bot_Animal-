@@ -1,8 +1,7 @@
-package pro.sky.javacourse.AnimalShelterBot.Controllers;
+package pro.sky.javacourse.AnimalShelterBot.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import pro.sky.javacourse.AnimalShelterBot.intermediary.QueryDefinitionClass;
 import pro.sky.javacourse.AnimalShelterBot.model.Shelter;
 import pro.sky.javacourse.AnimalShelterBot.service.ShelterService;
 
@@ -13,12 +12,9 @@ import java.util.List;
 public class ShelterController {
     @Autowired
     private ShelterService shelterService;
-    @Autowired
-    private QueryDefinitionClass queryDefinitionClass;
 
-    public ShelterController(ShelterService shelterService, QueryDefinitionClass queryDefinitionClass) {
+    public ShelterController(ShelterService shelterService) {
         this.shelterService = shelterService;
-        this.queryDefinitionClass = queryDefinitionClass;
     }
 
     @GetMapping("get_{id}")
@@ -28,7 +24,7 @@ public class ShelterController {
 
     @GetMapping("info_about_{name}")
     public String giveInfoAboutShelter(@PathVariable String name) {
-        return queryDefinitionClass.getInfoAboutShelter(name);
+        return shelterService.getInfoAboutShelter(name);
     }
     @GetMapping("delete_{id}")
     public void deleteShelter(@PathVariable Long id) {
