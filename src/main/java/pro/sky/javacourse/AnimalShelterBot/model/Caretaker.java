@@ -33,23 +33,19 @@ public class Caretaker {
         this.passport = passport;
     }
 
-
-
     public Long getId() {
         return id;
     }
 
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public String getName() {
         return name;
     }
-
     public void setName(String name) {
         this.name = name;
     }
+
 
     public String getAddress() {
         return address;
@@ -57,6 +53,7 @@ public class Caretaker {
 
     public void setAddress(String address) {
         this.address = address;
+
     }
 
     @Override
@@ -99,5 +96,16 @@ public class Caretaker {
 
     public void setPassport(String passport) {
         this.passport = passport;
+
+    @Override
+    public String toString() {
+        return "Caretaker{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", address='" + address + '\'' +
+                ", passport='" + passport + '\'' +
+                ", chatId=" + chatId +
+                '}';
+
     }
 }

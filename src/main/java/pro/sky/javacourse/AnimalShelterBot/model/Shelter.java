@@ -2,6 +2,7 @@ package pro.sky.javacourse.AnimalShelterBot.model;
 
 import jakarta.persistence.*;
 
+
 import java.util.Set;
 
 @Entity
@@ -27,6 +28,7 @@ public class Shelter {
     public Shelter() {
     }
 
+
     public Shelter(String name, String info, String regime, String address) {
         this.name = name;
         this.info = info;
@@ -37,6 +39,7 @@ public class Shelter {
     public Long getId() {
         return id;
     }
+
     public String getName() {
         return name;
     }
@@ -45,12 +48,14 @@ public class Shelter {
         this.name = name;
     }
 
+
     public String getInfo() {
         return info;
     }
 
     public void setInfo(String info) {
         this.info = info;
+
     }
 
     public String getRegime() {
@@ -60,6 +65,7 @@ public class Shelter {
     public void setRegime(String regime) {
         this.regime = regime;
     }
+
 
     public String getAddress() {
         return address;
@@ -76,8 +82,25 @@ public class Shelter {
     public void setVolunteerSet(Set<Volunteer> volunteerSet) {
         this.volunteerSet = volunteerSet;
     }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Shelter shelter)) return false;
+        return Objects.equals(id, shelter.id);
+    }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 
-    //------------------------------Inner class------------------------------//
+    @Override
+    public String toString() {
+        return "Shelter{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", address='" + address + '\'' +
+                '}';
+    }
 
 }
