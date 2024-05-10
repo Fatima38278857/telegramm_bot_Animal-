@@ -2,6 +2,7 @@ package pro.sky.javacourse.AnimalShelterBot.model;
 import jakarta.persistence.*;
 
 @Entity
+@Table(name = "volunteers")
 public class Volunteer {
 
     @Id
@@ -12,25 +13,11 @@ public class Volunteer {
     private String name;
 
     @Column(nullable = false)
-    private String number;
+    private String phoneNumber;
 
-    private boolean isAvailable;
+    @Column(nullable = false)
+    private boolean working;
 
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "pet_id", referencedColumnName = "id")
-    private Pet adoptedPet;
-
-    // Конструкторы
-    public Volunteer() {
-    }
-
-    public Volunteer(String name, String number) {
-        this.name = name;
-        this.number = number;
-        this.isAvailable = true; // Новый волонтер по умолчанию доступен для общения
-    }
-
-    // Геттеры и сеттеры
     public Long getId() {
         return id;
     }
@@ -47,50 +34,29 @@ public class Volunteer {
         this.name = name;
     }
 
-    public String getNumber() {
-        return number;
+    public String getPhoneNumber() {
+        return phoneNumber;
     }
 
-    public void setNumber(String number) {
-        this.number = number;
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
     }
 
-    public boolean isAvailable() {
-        return isAvailable;
+    public boolean isWorking() {
+        return working;
     }
 
-    public void setAvailable(boolean available) {
-        isAvailable = available;
+    public void setWorking(boolean working) {
+        this.working = working;
     }
 
-    public Pet getAdoptedPet() {
-        return adoptedPet;
+    public Volunteer() {
     }
 
-    public void setAdoptedPet(Pet adoptedPet) {
-        this.adoptedPet = adoptedPet;
-    }
-
-    // Дополнительные методы
-    public void assignPet(Pet pet) {
-        this.adoptedPet = pet;
-    }
-
-    public void extendTrialPeriod(int days) {
-        // Логика продления испытательного срока
-        // Например, увеличение срока на указанное количество дней
-    }
-
-    public void checkAdoptionReport() {
-        // Логика проверки отчета усыновителя
-    }
-
-    public void makeRemarksToAdopter(String remarks) {
-        // Логика оставления замечаний усыновителю
-    }
-
-    public void takeBackPet() {
-        this.adoptedPet = null;
+    public Volunteer(String name, String phoneNumber, boolean working) {
+        this.name = name;
+        this.phoneNumber = phoneNumber;
+        this.working = working;
     }
 
     @Override
@@ -98,9 +64,8 @@ public class Volunteer {
         return "Volunteer{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
-                ", number='" + number + '\'' +
-                ", isAvailable=" + isAvailable +
-                ", adoptedPet=" + adoptedPet +
+                ", phoneNumber='" + phoneNumber + '\'' +
+                ", working=" + working +
                 '}';
     }
 }

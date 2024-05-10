@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class VolunteerServiceImpl implements VolunteerService {
@@ -20,18 +21,8 @@ public class VolunteerServiceImpl implements VolunteerService {
     }
 
     @Override
-    public Volunteer updateVolunteer(Volunteer volunteer) {
-        return volunteerRepository.save(volunteer);
-    }
-
-    @Override
     public void deleteVolunteer(Long id) {
         volunteerRepository.deleteById(id);
-    }
-
-    @Override
-    public Volunteer getVolunteerById(Long id) {
-        return volunteerRepository.findById(id).orElse(null);
     }
 
     @Override
@@ -40,43 +31,19 @@ public class VolunteerServiceImpl implements VolunteerService {
     }
 
     @Override
-    public void addInitialVolunteers() {
-        addVolunteer(new Volunteer("Иван Петров", "+795322115"));
-        addVolunteer(new Volunteer("Марина Сидорова", "+79552222"));
+    public Optional<Volunteer> getVolunteerById(Long id) {
+        return volunteerRepository.findById(id);
     }
 
     @Override
-    public void assignPetToVolunteer(Long volunteerId, Long petId) {
-        // Логика назначения питомца волонтеру
-    }
-
-    @Override
-    public void extendTrialPeriod(Long volunteerId, int days) {
-        // Логика продления испытательного срока
-    }
-
-    @Override
-    public void checkAdoptionReport(Long volunteerId) {
-        // Логика проверки отчета усыновителя
-    }
-
-    @Override
-    public void makeRemarksToAdopter(Long volunteerId, String remarks) {
-        // Логика оставления замечаний усыновителю
-    }
-
-    @Override
-    public void takeBackPetFromVolunteer(Long volunteerId) {
-        // Логика возврата питомца обратно в приют
-    }
-
-    @Override
-    public Volunteer findVolunteerById(Long id) {
-        return volunteerRepository.findById(id).orElse(null);
-    }
-
-    @Override
-    public Volunteer saveVolunteer(Volunteer existingVolunteer) {
-        return volunteerRepository.save(existingVolunteer);
+    public void changeWorkingStatus(long volunteerId, boolean working) {
+        Optional<Volunteer> optionalVolunteer = volunteerRepository.findById(volunteerId);
+        if (optionalVolunteer.isPresent()) {
+            Volunteer volunteer = optionalVolunteer.get();
+            volunteer.setWorking(working);
+            volunteerRepository.save(volunteer);
+        } else {
+            throw new IllegalArgumentException("Volunteer with id " + volunteerId + " not found");
+        }
     }
 }
