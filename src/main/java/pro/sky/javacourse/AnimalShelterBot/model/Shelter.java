@@ -1,6 +1,8 @@
 package pro.sky.javacourse.AnimalShelterBot.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 import java.util.Set;
@@ -9,16 +11,36 @@ import java.util.Set;
 public class Shelter {
     @Id
     @GeneratedValue
-
     private Long id;
     private String name;
     private String address;
     private String regime;
+    @JsonIgnore
+    @Column(name = "how_to", length = 2048)
+    private String howTo;
+    @JsonIgnore
+    private String locationMapFileName;
+    @JsonIgnore
+    private Long locationMapFileSize;
+    @JsonIgnore
+    private String locationMapMediaType;
+    @JsonIgnore
     @Lob
     private byte[] locationMap;
-    @ManyToMany()
+    @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinTable(name = "shelters_volunteers",
+            joinColumns = {
+                    @JoinColumn(name = "shelter_id", referencedColumnName = "id")
+            },
+            inverseJoinColumns = {
+                    @JoinColumn(name = "volunteer_id", referencedColumnName = "id")
+            }
+    )
+    @JsonIgnore
     private Set<Volunteer> volunteerSet;
-    @OneToOne()
+
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "volunteer_id")
     private Volunteer mainVolunteer;
 
@@ -28,6 +50,24 @@ public class Shelter {
     public Shelter(String name, String address) {
         this.name = name;
         this.address = address;
+    }
+
+    public Shelter(String name, String address, String regime) {
+        this.name = name;
+        this.address = address;
+        this.regime = regime;
+    }
+
+    public Shelter(String name, String address, String regime, String howTo, Volunteer mainVolunteer) {
+        this.name = name;
+        this.address = address;
+        this.regime = regime;
+        this.howTo = howTo;
+        this.mainVolunteer = mainVolunteer;
+    }
+
+    public Long getId() {
+        return id;
     }
 
     public String getName() {
@@ -62,6 +102,54 @@ public class Shelter {
         this.regime = regime;
     }
 
+    public String getHowTo() {
+        return howTo;
+    }
+
+    public void setHowTo(String howTo) {
+        this.howTo = howTo;
+    }
+
+    public byte[] getLocationMap() {
+        return locationMap;
+    }
+
+    public void setLocationMap(byte[] locationMap) {
+        this.locationMap = locationMap;
+    }
+
+    public Set<Volunteer> getVolunteerSet() {
+        return volunteerSet;
+    }
+
+    public void setVolunteerSet(Set<Volunteer> volunteerSet) {
+        this.volunteerSet = volunteerSet;
+    }
+
+    public String getLocationMapFileName() {
+        return locationMapFileName;
+    }
+
+    public void setLocationMapFileName(String locationMapFileName) {
+        this.locationMapFileName = locationMapFileName;
+    }
+
+    public Long getLocationMapFileSize() {
+        return locationMapFileSize;
+    }
+
+    public void setLocationMapFileSize(Long locationMapFileSize) {
+        this.locationMapFileSize = locationMapFileSize;
+    }
+
+    public String getLocationMapMediaType() {
+        return locationMapMediaType;
+    }
+
+    public void setLocationMapMediaType(String locationMapMediaType) {
+        this.locationMapMediaType = locationMapMediaType;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -80,6 +168,7 @@ public class Shelter {
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", address='" + address + '\'' +
+                ", mainVolunteer=" + mainVolunteer +
                 '}';
     }
 }

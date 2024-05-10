@@ -16,9 +16,11 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
+import pro.sky.javacourse.AnimalShelterBot.model.Shelter;
 import pro.sky.javacourse.AnimalShelterBot.service.BotService;
 import pro.sky.javacourse.AnimalShelterBot.telegram_bot.menu.BotState;
 
@@ -104,6 +106,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                     if (botStates.get(chatId) == BotState.VOLUNTEER_CHAT) {
                         sendText(chatId, "Чат с волонтером закрыт. Открыть чат можно выбрав приют.");
                     }
+                    if (botStates.get(chatId) == BotState.VOLUNTEER_CHAT) {
+                        sendText(chatId, "Отправка контакта отменена.");
+                    }
                     if (botStates.get(chatId) == BotState.REPORT) {
                         sendText(chatId, "Создание отчета отменено.");
                     }
@@ -129,6 +134,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         // particular bot states
         switch (botStates.get(chatId)) {
             case COMMON -> onUpdateReceivedCommon(update);
+            case COLLECT_DATA -> onUpdateReceivedCollectData(update);
             case VOLUNTEER_CHAT -> onUpdateReceivedVolunteerChat(update);
             case REPORT -> onUpdateReceivedReport(update);
         }
@@ -167,7 +173,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     } catch (TelegramApiException e) {
                         logger.error("Error deleting message: " + e.toString());
                     }
-                    logger.info(user.getFirstName() + ", chatId " + chatId + " deleted help message");
+                    logger.info(user.getFirstName() + ", chatId " + chatId + " deleted message");
                 }
                 case "SHELTER_SELECT" -> {
                     sendText(chatId, "Выберите приют:");
@@ -205,6 +211,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                     } else if (callbackData.startsWith("REPORT")) {
                         Long petId = getIdFromCallbackData(callbackData);
                         menuReportPetCurrent(petId);
+                    } else if (callbackData.startsWith("CONTACT")) {
+                        Long shelterId = getIdFromCallbackData(callbackData);
+                        menuContactRequest(chatId, shelterId);
                     } else {
                         sendText(chatId, ALTERNATIVE_TEXT);
                     }
@@ -217,14 +226,16 @@ public class TelegramBot extends TelegramLongPollingBot {
         if (update.hasMessage() && update.getMessage().hasText()
                 && update.getMessage().getText().equals("Выйти из чата")) {
 
+// как я могу получить shelter, если udate содержит только "выйти из чата"???????????
             Long volunteerChatId = 1722853186L; // must be retrieved fom DB using shelterId
+
             ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove(true, true);
-            SendMessage message = new SendMessage();
-            Long chatId = update.getMessage().getChatId();
             User user = update.getMessage().getFrom();
-            message.setText("Отправка сообщений волонтеру отключена");
-            message.setChatId(chatId);
-            message.setReplyMarkup(keyboardRemove);
+            Long chatId = update.getMessage().getChatId();
+            SendMessage message = SendMessage.builder().chatId(chatId)
+                    .text("Отправка сообщений волонтеру отключена")
+                    .replyMarkup(keyboardRemove)
+                    .build();
             executeAndSendMessage(message);
             logger.info(user + " chatId " + chatId + " closed chat with volunteerId " + volunteerChatId);
             botStates.put(chatId, BotState.COMMON);
@@ -267,7 +278,45 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void onUpdateReceivedCollectData(Update update) {
-
+        if (update.hasMessage() && update.getMessage().hasText()) {
+            Message message = update.getMessage();
+            User user = message.getFrom();
+            Long chatId = update.getMessage().getChatId();
+            logger.info(user.getFirstName() + ", chatId " + chatId + ", wrote from common state " + message.getText());
+            if (message.getText().equals("Отмена")) {
+                ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove(true, true);
+                SendMessage msg = SendMessage.builder().chatId(chatId)
+                        .text("Отправка контакта отменена.")
+                        .replyMarkup(keyboardRemove).build();
+                executeAndSendMessage(msg);
+                botStates.put(chatId, BotState.COMMON);
+            } else {
+                SendMessage msg = SendMessage.builder().chatId(chatId)
+                        .text(ALTERNATIVE_TEXT).build();
+                executeAndSendMessage(msg);
+            }
+        } else if (update.getMessage().getReplyToMessage().getText().startsWith("Чтобы оставить заявку на телефонный звонок, нажмите на кнопку с названием ")) {
+            String shelterName = update.getMessage().getReplyToMessage().getText()
+                    .replace("Чтобы оставить заявку на телефонный звонок, нажмите на кнопку с названием ", "")
+                    .replace(".", "");
+            Shelter shelter = botService.findShelterByName(shelterName);
+            Long chatId = update.getMessage().getChatId();
+            if (shelter == null) {
+                logger.error("Shelter " + shelterName + " not found.");
+                SendMessage msg = SendMessage.builder().chatId(chatId)
+                        .text(ALTERNATIVE_TEXT).build();
+                executeAndSendMessage(msg);
+            } else {
+                Contact contact = update.getMessage().getContact();
+                botService.saveContact(contact, shelter);
+                ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove(true, true);
+                SendMessage m = SendMessage.builder().chatId(chatId)
+                        .text("Ваши данные отправлены в приют " + shelterName + ".")
+                        .replyMarkup(keyboardRemove).build();
+                executeAndSendMessage(m);
+                botStates.put(chatId, BotState.COMMON);
+            }
+        }
     }
 
     private void onUpdateReceivedVolunteer(Update update) {
@@ -372,7 +421,9 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         String[][][] buttons = {{{"Ok", "DELETE"}}};
         InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
-        SendMessage message = SendMessage.builder().chatId(chatId).text(text).replyMarkup(inlineKeyboardMarkup).build();
+        SendMessage message = SendMessage.builder().chatId(chatId)
+                .text(text)
+                .replyMarkup(inlineKeyboardMarkup).build();
         executeAndSendMessage(message); // отображение сообщения в чате, отправка в чат
     }
 
@@ -385,16 +436,12 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param chatId chat identity of type Long
      */
     protected void menuShelterSelect(Long chatId) {
-        List<List<String>> shelters = new ArrayList<>();
-        shelters.add(List.of("Солнышко", "Адрес: Москва, ул. Академика Королева, 13", "0"));
-        shelters.add(List.of("Дружок", "Адрес: Ижевск, ул. Боевой славы, 5", "1"));
-        shelters.add(List.of("На Невском", "Адрес: Санкт-Петербург, Невский проспект, 18", "2"));
-
-        for (List<String> shelter : shelters) {
+        List<Shelter> shelters = botService.findShelters();
+        for (Shelter shelter : shelters) {
             SendMessage shelterMessage = SendMessage.builder()
                     .chatId(chatId)
-                    .text(shelter.get(0) + "\n\n" + shelter.get(1)).build();
-            String[][][] buttons = {{{"Схема проезда", "LOCATION_MAP" + shelter.get(2)}, {"Выбрать", "SHELTER" + shelter.get(2)}}};
+                    .text(shelter.getName() + "\n\n" + shelter.getAddress()).build();
+            String[][][] buttons = {{{"Схема проезда", "LOCATION_MAP" + shelter.getId()}, {"Выбрать", "SHELTER" + shelter.getId()}}};
             InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
             shelterMessage.setReplyMarkup(inlineKeyboardMarkup);
             executeAndSendMessage(shelterMessage);
@@ -413,32 +460,14 @@ public class TelegramBot extends TelegramLongPollingBot {
         Long chatId = update.getCallbackQuery().getMessage().getChatId();
         Long shelterId = getIdFromCallbackData(callbackData);
 
-        List<List<String>> shelters = new ArrayList<>();
-        shelters.add(List.of("Солнышко", "Адрес: Москва, ул. Академика Королева, 13", "0"));
-        shelters.add(List.of("Дружок", "Адрес: Ижевск, ул. Боевой славы, 5", "1"));
-        shelters.add(List.of("На Невском", "Адрес: Санкт-Петербург, Невский проспект, 18", "2"));
+        Shelter shelter = botService.findShelter(shelterId);
 
-        List<String> shelter = new ArrayList<>();
-        try {
-            shelter = shelters.stream()
-                    .filter(s -> Long.valueOf(s.get(2)).equals(shelterId))
-                    .findFirst()
-                    .orElseThrow(NullPointerException::new);
-        } catch (NullPointerException e) {
-            logger.error("Shelter id: " + shelterId.toString() + " not found.");
-            e.printStackTrace();
-        }
-
-        String text = shelter.get(0) + "\n\n" + shelter.get(1);
-
-        EditMessageText messageText = new EditMessageText();
-        messageText.setChatId(chatId);
-        messageText.setText(text);
-        messageText.setMessageId(messageId);
-
-        String[][][] buttons = {{{"Схема проезда", "LOCATION_MAP" + shelter.get(2)}, {"Выбрать", "SHELTER" + shelter.get(2)}}};
+        String[][][] buttons = {{{"Схема проезда", "LOCATION_MAP" + shelterId}, {"Выбрать", "SHELTER" + shelterId}}};
         InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
-        messageText.setReplyMarkup(inlineKeyboardMarkup);
+        EditMessageText messageText = EditMessageText.builder().chatId(chatId)
+                .messageId(messageId)
+                .text(shelter.getName() + "\n\n" + shelter.getAddress())
+                .replyMarkup(inlineKeyboardMarkup).build();
         executeAndEditMessage(messageText);
     }
 
@@ -451,39 +480,25 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param chatId chat identity of type Long, shelterId - shelter identity of type Long
      */
     protected void menuShelter(Long chatId, Long shelterId) {
-        List<List<String>> shelters = new ArrayList<>();
-        shelters.add(List.of("Солнышко", "Адрес: Москва, ул. Академика Королева, 13", "0", "Режим работы:\nПонедельник - пятница: с 7-00 до 20-00 без обеда и выходных."));
-        shelters.add(List.of("Дружок", "Адрес: Ижевск, ул. Боевой славы, 5", "1", "Режим работы:\nПонедельник - пятница: с 8-00 до 21-00 без обеда и выходных."));
-        shelters.add(List.of("На Невском", "Адрес: Санкт-Петербург, Невский проспект, 18", "2", "Режим работы:\nПонедельник - пятница: с 6-00 до 20-00 без обеда и выходных."));
-        List<String> shelter = new ArrayList<>();
-        try {
-            shelter = shelters.stream()
-                    .filter(s -> Long.valueOf(s.get(2)).equals(shelterId))
-                    .findFirst()
-                    .orElseThrow(NullPointerException::new);
-        } catch (NullPointerException e) {
-            logger.error("Shelter id: " + shelterId.toString() + " not found.");
-            e.printStackTrace();
-        }
-
+        Shelter shelter = botService.findShelter(shelterId);
         SendMessage shelterMessage = SendMessage.builder()
                 .chatId(chatId)
-                .text(shelter.get(0) + "\n" + shelter.get(3)).build();
+                .text(shelter.getName() + "\n" + shelter.getRegime()).build();
 
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> keyboardRows = new ArrayList<>();
 
-        if (botService.isVolunteer(chatId, Long.parseLong(shelter.get(2)))) {
-            keyboardRows.add(List.of(createInlineKeyBoardButton("Проверить отчеты опекунов", "REPORT_CHECK" + shelter.get(2))));
+        if (botService.isVolunteer(chatId, shelterId)) {
+            keyboardRows.add(List.of(createInlineKeyBoardButton("Проверить отчеты опекунов", "REPORT_CHECK" + shelterId)));
         }
         if (true) { // если у опекуна есть питомцы на испытательном сроке
-            keyboardRows.add(List.of(createInlineKeyBoardButton("Сдать отчет", "REPORT")));
+            keyboardRows.add(List.of(createInlineKeyBoardButton("Сдать отчет", "REPORT_PET_SELECT")));
         }
 
-        keyboardRows.add(List.of(createInlineKeyBoardButton("Как взять животное из приюта?", "HOW_TO" + shelter.get(2))));
-        keyboardRows.add(List.of(createInlineKeyBoardButton("Выбрать питомца", "ANIMAL_TYPES" + shelter.get(2))));
-        keyboardRows.add(List.of(createInlineKeyBoardButton("Оставьте Ваш номер и мы Вам перезвоним", "COLLECT_DATA" + shelter.get(2))));
-        keyboardRows.add(List.of(createInlineKeyBoardButton("Позвать волонтера", "VOLUNTEER_CHAT" + shelter.get(2))));
+        keyboardRows.add(List.of(createInlineKeyBoardButton("Как взять животное из приюта?", "HOW_TO" + shelterId)));
+        keyboardRows.add(List.of(createInlineKeyBoardButton("Выбрать питомца", "ANIMAL_TYPES" + shelterId)));
+        keyboardRows.add(List.of(createInlineKeyBoardButton("Оставьте Ваш номер и мы Вам перезвоним", "CONTACT" + shelterId)));
+        keyboardRows.add(List.of(createInlineKeyBoardButton("Позвать волонтера", "VOLUNTEER_CHAT" + shelterId)));
         keyboardRows.add(List.of(createInlineKeyBoardButton("Вернуться к выбору приюта", "SHELTER_SELECT")));
         inlineKeyboardMarkup.setKeyboard(keyboardRows);
         shelterMessage.setReplyMarkup(inlineKeyboardMarkup);
@@ -500,69 +515,26 @@ public class TelegramBot extends TelegramLongPollingBot {
         Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
         Long chatId = update.getCallbackQuery().getMessage().getChatId();
         Long shelterId = getIdFromCallbackData(callbackData);
+        Shelter shelter = botService.findShelter(shelterId);
 
-        List<List<String>> shelters = new ArrayList<>();
-        shelters.add(List.of("Солнышко", "Адрес: Москва, ул. Академика Королева, 13", "0", "Режим работы:\nПонедельник - пятница: с 7-00 до 20-00 без обеда и выходных."));
-        shelters.add(List.of("Дружок", "Адрес: Ижевск, ул. Боевой славы, 5", "1", "Режим работы:\nПонедельник - пятница: с 8-00 до 21-00 без обеда и выходных."));
-        shelters.add(List.of("На Невском", "Адрес: Санкт-Петербург, Невский проспект, 18", "2", "Режим работы:\nПонедельник - пятница: с 6-00 до 20-00 без обеда и выходных."));
-
-        List<String> shelter = new ArrayList<>();
-        try {
-            shelter = shelters.stream()
-                    .filter(s -> Long.valueOf(s.get(2)).equals(shelterId))
-                    .findFirst()
-                    .orElseThrow(NullPointerException::new);
-        } catch (NullPointerException e) {
-            logger.error("Shelter id: " + shelterId.toString() + " not found.");
-            e.printStackTrace();
-        }
-
-        String text = shelter.get(0) + "\n" + shelter.get(3) + "\n\nЗдесь должна быть схема проезда к приюту " + shelter.get(0);
-        EditMessageText messageText = new EditMessageText();
-        messageText.setChatId(chatId);
-        messageText.setText(text);
-        messageText.setMessageId(messageId);
-
-        String[][][] buttons = {{{"Назад", "SEPARATE_SHELTER" + shelter.get(2)}, {"Выбрать", "SHELTER" + shelter.get(2)}}};
+        String[][][] buttons = {{{"Назад", "SEPARATE_SHELTER" + shelterId}, {"Выбрать", "SHELTER" + shelterId}}};
         InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
-        messageText.setReplyMarkup(inlineKeyboardMarkup);
-        executeAndEditMessage(messageText);
+        EditMessageText editMessage = EditMessageText.builder()
+                .chatId(chatId)
+                .messageId(messageId)
+                .text(shelter.getName() + "\n" + shelter.getRegime() + "\n\nЗдесь должна быть схема проезда к приюту \""
+                        + shelter.getName() + "\"")
+                .replyMarkup(inlineKeyboardMarkup).build();
+        executeAndEditMessage(editMessage);
     }
 
     protected void menuHowTo(Long chatId, Long shelterId) {
-        List<List<String>> shelters = new ArrayList<>();
-        // String howTo should be text from database, that can be unique for each shelter
-        String howTo = "Чтобы взять животное из приюта необходимо будет посетить приют и выбрать питомца. Адрес и режим работы приюта можно узнать, просмотрев информацию из предыдущих меню.\n" +
-                "Краткую информацию о содержащихся в приюте питомцах можно узнать, проследовав в предыдущем меню по кнопке «Выбрать питомца».\n" +
-                "Также в нашем боте можно получить рекомендации специалистов по общим вопросам содержания отдельных видов и пород животных. \n" +
-                "Для оформления документов от нам потребуется Ваш паспорт гражданина РФ.\n" +
-                "В приюте Вы познакомитесь с питомцем и сможете вместе провести время, например, сходить на прогулку.\n" +
-                "В отдельных случаях, от Вас потребуется подтвердить наличие условий содержания животного, либо наличие специальных предметов для транспортировки животного. С данными условиями Вы можете также кратко ознакомиться, перейдя в предыдущем меню по кнопке «Выбрать питомца».\n" +
-                "После заключения договора Вы сможете забрать питомца в его новый дом. Вам будет назначен испытательный срок, в течение которого Вы обязаны ежедневно присылать отчет о состоянии питомца с фотографиями. Отчет также можно передать через данного бота в Телеграмм. Замечания или пожелания от волонтеров, просматривающих отчеты, также поступят в Ваш чат с ботом.\n" +
-                "И главное, Вам могут отказать в передаче питомца или обязать вернуть питомца в приют без объяснения причин. Таково наше условие, с которым необходимо согласиться.\n" +
-                "После прохождения испытательного срока от Вас потребуется посетить приют вместе с питомцем для завершения оформления документов.\n" +
-                "По всем дополнительным вопросам Вы также можете связаться с нашими волонтерами используя чат бота либо можете оставить свои контактные данные, и мы Вам перезвоним.\n";
-
-        shelters.add(List.of("Солнышко", "Адрес: Москва, ул. Академика Королева, 13", "0", howTo));
-        shelters.add(List.of("Дружок", "Адрес: Ижевск, ул. Боевой славы, 5", "1", howTo));
-        shelters.add(List.of("На Невском", "Адрес: Санкт-Петербург, Невский проспект, 18", "2", howTo));
-
-        List<String> shelter = new ArrayList<>();
-        try {
-            shelter = shelters.stream()
-                    .filter(s -> Long.valueOf(s.get(2)).equals(shelterId))
-                    .findFirst()
-                    .orElseThrow(NullPointerException::new);
-        } catch (NullPointerException e) {
-            logger.error("Shelter id: " + shelterId.toString() + " not found.");
-            e.printStackTrace();
-        }
-
-        SendMessage message = SendMessage.builder().chatId(chatId)
-                .text(shelter.get(0) + "\n\n" + shelter.get(3)).build();
-        String[][][] buttons = {{{"OK", "SHELTER" + shelter.get(2)}}};
+        Shelter shelter = botService.findShelter(shelterId);
+        String[][][] buttons = {{{"OK", "SHELTER" + shelterId}}};
         InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
-        message.setReplyMarkup(inlineKeyboardMarkup);
+        SendMessage message = SendMessage.builder().chatId(chatId)
+                .text(shelter.getName() + "\n\n" + shelter.getHowTo())
+                .replyMarkup(inlineKeyboardMarkup).build();
         executeAndSendMessage(message);
     }
 
@@ -669,26 +641,11 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     protected void menuVolunteerChat(Long chatId, Long shelterId) {
-        List<List<String>> shelters = new ArrayList<>();
-        shelters.add(List.of("Солнышко", "Адрес: Москва, ул. Академика Королева, 13", "0", "Режим работы:\nПонедельник - пятница: с 7-00 до 20-00 без обеда и выходных."));
-        shelters.add(List.of("Дружок", "Адрес: Ижевск, ул. Боевой славы, 5", "1", "Режим работы:\nПонедельник - пятница: с 8-00 до 21-00 без обеда и выходных."));
-        shelters.add(List.of("На Невском", "Адрес: Санкт-Петербург, Невский проспект, 18", "2", "Режим работы:\nПонедельник - пятница: с 6-00 до 20-00 без обеда и выходных."));
-
-        List<String> shelter = new ArrayList<>();
-        try {
-            shelter = shelters.stream()
-                    .filter(s -> Long.valueOf(s.get(2)).equals(shelterId))
-                    .findFirst()
-                    .orElseThrow(NullPointerException::new);
-        } catch (NullPointerException e) {
-            logger.error("Shelter id: " + shelterId.toString() + " not found.");
-            e.printStackTrace();
-        }
-
+        Shelter shelter = botService.findShelter(shelterId);
         botStates.put(chatId, BotState.VOLUNTEER_CHAT);
         SendMessage message = SendMessage.builder().chatId(chatId)
-                .text("Теперь Ваши сообщения будут доставлены дежурному волонтеру в приют " + shelter.get(0)
-                        + "\nДля выхода из чата с волонтером нажмите кнопку \"Выйти из чата\" или отправьте сообщение с текстом \"Выйти из чата\"")
+                .text("Теперь Ваши сообщения будут доставлены дежурному волонтеру в приют \"" + shelter.getName()
+                        + "\"\nДля выхода из чата с волонтером нажмите кнопку \"Выйти из чата\" или отправьте сообщение с текстом \"Выйти из чата\"")
                 .build();
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
         List<KeyboardRow> keyboardRows = new ArrayList<>();
@@ -699,7 +656,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         keyboardMarkup.setResizeKeyboard(true); // resizes keyboard to smaller size
         keyboardMarkup.setOneTimeKeyboard(false);
         message.setReplyMarkup(keyboardMarkup);
-        executeAndSendMessage(message); // отображение сообщения в чате, отправка в чат
+        executeAndSendMessage(message);
     }
 
     protected void menuReportStart(Long chatId) {
@@ -761,9 +718,37 @@ public class TelegramBot extends TelegramLongPollingBot {
         keyboardMarkup.setResizeKeyboard(true); // resizes keyboard to smaller size
         keyboardMarkup.setOneTimeKeyboard(false);
         message.setReplyMarkup(keyboardMarkup);
-        executeAndSendMessage(message); // отображение сообщения в чате, отправка в чат
-
+        executeAndSendMessage(message);
     }
+
+    protected void menuContactRequest(Long chatId, Long shelterId) {
+        Shelter shelter = botService.findShelter(shelterId);
+        botStates.put(chatId, BotState.COLLECT_DATA);
+        SendMessage message = SendMessage.builder().chatId(chatId)
+                .text("Чтобы оставить заявку на телефонный звонок, нажмите на кнопку с названием " + shelter.getName() + ".")
+                .build();
+
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        List<KeyboardRow> keyboardRows = new ArrayList<>();
+        KeyboardRow row = new KeyboardRow();
+        KeyboardButton keyboardButton = KeyboardButton.builder().text(shelter.getName()) // Added button with SHELTER NAME
+                .requestContact(true)
+                .build();
+        row.add(keyboardButton);
+        row.addAll(List.of("Отмена"));
+        keyboardRows.add(row);
+        keyboardMarkup.setKeyboard(keyboardRows);
+        keyboardMarkup.setSelective(true);
+        keyboardMarkup.setResizeKeyboard(true); // resizes keyboard to smaller size
+        keyboardMarkup.setOneTimeKeyboard(false);
+        message.setReplyMarkup(keyboardMarkup);
+        executeAndSendMessage(message);
+    }
+
+    // ИЗБАВИТЬСЯ ОТ ЗАХАРДКОЖЕНОГО АЙДИ ВОЛОНТЕРА 1722853186
+//    И АЙДИ ПОЛЬЗОВАТЕЛЯ(УСЫНОВИТЕЛЯ) 6725110697
+
+
 }
 
 

@@ -1,0 +1,11 @@
+package pro.sky.javacourse.AnimalShelterBot.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import pro.sky.javacourse.AnimalShelterBot.model.Shelter;
+import pro.sky.javacourse.AnimalShelterBot.model.Volunteer;
+
+@Repository
+public interface VolunteerRepository extends JpaRepository<Volunteer, Long> {
+    Volunteer findByChatId(Long chatId);
+}

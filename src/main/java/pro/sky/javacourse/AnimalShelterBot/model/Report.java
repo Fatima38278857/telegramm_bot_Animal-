@@ -12,16 +12,19 @@ public class Report {
     private Long id;
     @ManyToOne()
     @JoinColumn(name = "caretaker_id")
-    private final Caretaker caretaker;
+    private Caretaker caretaker;
     @ManyToOne()
     @JoinColumn(name = "pet_id")
-    private final Pet pet;
+    private Pet pet;
     private LocalDateTime dateTime;
     private String text;
 
     public Report(Caretaker caretaker, Pet pet) {
         this.caretaker = caretaker;
         this.pet = pet;
+    }
+
+    public Report() {
     }
 
     public Long getId() {

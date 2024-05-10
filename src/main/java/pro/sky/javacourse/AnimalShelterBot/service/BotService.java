@@ -1,5 +1,11 @@
 package pro.sky.javacourse.AnimalShelterBot.service;
 
+import org.telegram.telegrambots.meta.api.objects.Contact;
+import pro.sky.javacourse.AnimalShelterBot.model.Shelter;
+import pro.sky.javacourse.AnimalShelterBot.model.TelegramContact;
+
+import java.util.List;
+
 public interface BotService {
     // List<Shelter> getShelters(); // возвращает список или Set приютов
     // Shelter getShelterById(Long shelterId); // возвращает приют по Id
@@ -13,6 +19,13 @@ public interface BotService {
     // List<Caretaker> getActualCaretakers(); // Возвращает тех опекунов, на которых числятся питомцы у которых дата окончания испытательного срока больше LocalDateTime.now();
     // Caretaker getCaretakerById(Long CaretakerId); // Возвращает опекуна по Id;
     Boolean isVolunteer(Long chatId, Long shelterId);
+
+    List<Shelter> findShelters();
+
+    Shelter findShelter(Long id);
+
+    Shelter findShelterByName(String name);
+    TelegramContact saveContact(Contact contact, Shelter shelter);
 
     // Нужно в приют добавить поле с дежурным волонтером в класс приют
 }

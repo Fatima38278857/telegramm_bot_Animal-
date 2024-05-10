@@ -1,5 +1,7 @@
 package pro.sky.javacourse.AnimalShelterBot.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -12,28 +14,47 @@ public class Pet {
     private Long id;
     private String name;
     private Integer age;
-    private String type; // Собака, кот, другое
+    @Enumerated(EnumType.STRING)
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private PetType type; // СОБАКА, КОТ, ОСТАЛЬНЫЕ
     private String abilities;
     private String restrictions;
     private String conditions;
+    @JsonIgnore
+    private String avatarFileName;
+    @JsonIgnore
+    private Long avatarFileSize;
+    @JsonIgnore
+    private String avatarMediaType;
+    @JsonIgnore
     @Lob
     private byte[] avatar;
     private LocalDateTime trialStart;
     private LocalDateTime trialEnd;
-    private String status; // передан хозяину навсегда, на испытательном сроке, болеет, умер
     @ManyToOne()
     @JoinColumn(name = "shelter_id")
     private Shelter shelter;
+    @Enumerated(EnumType.STRING)
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private PetStatus status;
+    @JsonIgnore
+    @ManyToOne
+    @JoinColumn(name = "caretaker_id")
+    private Caretaker caretaker;
 
 
     public Pet() {
     }
 
-    public Pet(String name, Integer age, String type, Shelter shelter) {
+    public Pet(String name, Integer age, PetType type, String abilities, String restrictions, String conditions, Shelter shelter) {
         this.name = name;
         this.age = age;
         this.type = type;
+        this.abilities = abilities;
+        this.restrictions = restrictions;
+        this.conditions = conditions;
         this.shelter = shelter;
+        this.status = PetStatus.ОФОРМЛЯЕТСЯ;
     }
 
     public String getName() {
@@ -88,6 +109,46 @@ public class Pet {
         this.conditions = conditions;
     }
 
+    public PetType getType() {
+        return type;
+    }
+
+    public void setType(PetType type) {
+        this.type = type;
+    }
+
+    public String getAvatarFileName() {
+        return avatarFileName;
+    }
+
+    public void setAvatarFileName(String avatarFileName) {
+        this.avatarFileName = avatarFileName;
+    }
+
+    public Long getAvatarFileSize() {
+        return avatarFileSize;
+    }
+
+    public void setAvatarFileSize(Long avatarFileSize) {
+        this.avatarFileSize = avatarFileSize;
+    }
+
+    public String getAvatarMediaType() {
+        return avatarMediaType;
+    }
+
+    public void setAvatarMediaType(String avatarMediaType) {
+        this.avatarMediaType = avatarMediaType;
+    }
+
+    public byte[] getAvatar() {
+        return avatar;
+    }
+
+    public void setAvatar(byte[] avatar) {
+        this.avatar = avatar;
+    }
+
     public LocalDateTime getTrialStart() {
         return trialStart;
     }
@@ -104,12 +165,20 @@ public class Pet {
         this.trialEnd = trialEnd;
     }
 
-    public String getStatus() {
+    public PetStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(PetStatus status) {
         this.status = status;
+    }
+
+    public Caretaker getCaretaker() {
+        return caretaker;
+    }
+
+    public void setCaretaker(Caretaker caretaker) {
+        this.caretaker = caretaker;
     }
 
     @Override
@@ -133,6 +202,7 @@ public class Pet {
                 ", type='" + type + '\'' +
                 ", restrictions='" + restrictions + '\'' +
                 ", status='" + status + '\'' +
+                ", volunteer='" + caretaker.getId() + '\'' +
                 ", shelter=" + shelter.getName() +
                 '}';
     }

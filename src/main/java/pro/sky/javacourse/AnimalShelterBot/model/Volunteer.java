@@ -1,9 +1,7 @@
 package pro.sky.javacourse.AnimalShelterBot.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
 
 import java.util.Objects;
 import java.util.Set;
@@ -16,11 +14,30 @@ public class Volunteer {
     private String name;
     private String address;
     private String passport;
+    private String phoneNumber;
     private Long chatId;
-    @ManyToMany(mappedBy = "volunteerSet")
+    @JsonIgnore
+    @ManyToMany(mappedBy = "volunteerSet", fetch = FetchType.LAZY)
     private Set<Shelter> shelters;
 
     public Volunteer() {
+    }
+    public Volunteer(String name, Long chatId) {
+        this.name = name;
+        this.chatId = chatId;
+    }
+
+    public Volunteer(String name, String address, String passport, String phoneNumber, Long chatId) {
+        this.name = name;
+        this.address = address;
+        this.passport = passport;
+        this.phoneNumber = phoneNumber;
+        this.chatId = chatId;
+    }
+
+    public Volunteer(String name, String address, String passport, String phoneNumber, Long chatId, Set<Shelter> shelters) {
+        this(name, address, passport, phoneNumber, chatId);
+        this.shelters = shelters;
     }
 
     public Volunteer(String name) {
@@ -42,6 +59,7 @@ public class Volunteer {
     public String getName() {
         return name;
     }
+
     public void setName(String name) {
         this.name = name;
     }
@@ -66,6 +84,14 @@ public class Volunteer {
         return shelters;
     }
 
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -83,6 +109,9 @@ public class Volunteer {
         return "Volunteer{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
+                ", address='" + address + '\'' +
+                ", passport='" + passport + '\'' +
+                ", phoneNumber='" + phoneNumber + '\'' +
                 ", chatId=" + chatId +
                 '}';
     }
