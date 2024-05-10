@@ -1,4 +1,4 @@
-package pro.sky.javacourse.AnimalShelterBot.model.menu;
+package pro.sky.javacourse.AnimalShelterBot.menu;
 
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;

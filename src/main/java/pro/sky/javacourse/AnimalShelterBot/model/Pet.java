@@ -68,4 +68,7 @@ public class Pet {
                 ", age=" + age +
                 '}';
     }
+
+    public void setShelter(Object o) {
+    }
 }
