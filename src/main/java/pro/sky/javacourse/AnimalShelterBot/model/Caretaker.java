@@ -24,15 +24,12 @@ public class Caretaker {
     @Column(name = "passport")
     private String passport;
 
-    public Caretaker() {
-    }
     private LocalDate trialPeriodStart;
 
     private LocalDate trialPeriodEnd;
 
     private String comments;
 
-    // Геттеры и сеттеры для испытательного срока и комментариев
     public LocalDate getTrialPeriodStart() {
         return trialPeriodStart;
     }
@@ -138,5 +135,11 @@ public class Caretaker {
     public void setPassport(String passport) {
         this.passport = passport;
 
+    }
+
+    public void setReport(String report) {
+    }
+
+    public void setComments(String comments) {
     }
 }

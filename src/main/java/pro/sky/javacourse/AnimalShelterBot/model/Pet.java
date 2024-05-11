@@ -11,6 +11,8 @@ public class Pet {
     private String name;
     private String species;
     private int age;
+    private boolean adopted;
+    private Long caretakerId;
 
     // Constructors, getters, and setters
 
@@ -80,6 +82,14 @@ public class Pet {
                 '}';
     }
 
-    public void setShelter(Object o) {
+    public boolean isAdopted() {
+    return false;
+    }
+    public void setAdopted(boolean adopted) {
+        this.adopted = adopted;
+    }
+
+    public void setCaretakerId(Long caretakerId) {
+        this.caretakerId = caretakerId;
     }
 }

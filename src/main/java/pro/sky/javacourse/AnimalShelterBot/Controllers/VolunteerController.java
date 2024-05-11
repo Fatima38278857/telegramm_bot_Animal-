@@ -59,4 +59,29 @@ public class VolunteerController {
     public ResponseEntity<String> setTrialPeriodEnd(@PathVariable Long caretakerId, @RequestParam("newEndDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate newEndDate) {
         volunteerService.setTrialPeriodEnd(caretakerId, newEndDate);
         return ResponseEntity.ok("Trial period end date set successfully.");
-    }}
+    }
+
+    @PostMapping("/{caretakerId}/check-report")
+    public ResponseEntity<String> checkCaretakerReport(@PathVariable Long caretakerId, @RequestBody String report) {
+        volunteerService.checkCaretakerReport(caretakerId, report);
+        return ResponseEntity.ok("Caretaker report checked successfully.");
+    }
+
+    @PostMapping("/{caretakerId}/make-comments")
+    public ResponseEntity<String> makeComments(@PathVariable Long caretakerId, @RequestBody String comments) {
+        volunteerService.makeComments(caretakerId, comments);
+        return ResponseEntity.ok("Comments added successfully.");
+    }
+
+    @PutMapping("/{caretakerId}/extend-trial-period")
+    public ResponseEntity<String> extendTrialPeriod(@PathVariable Long caretakerId, @RequestParam("newEndDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate newEndDate) {
+        volunteerService.extendTrialPeriod(caretakerId, newEndDate);
+        return ResponseEntity.ok("Trial period extended successfully.");
+    }
+
+    @PutMapping("/{volunteerId}/transfer-pet/{petId}/to-caretaker/{caretakerId}")
+    public ResponseEntity<String> transferPetToCaretaker(@PathVariable Long volunteerId, @PathVariable Long petId, @PathVariable Long caretakerId) {
+        volunteerService.transferPetToCaretaker(volunteerId, petId, caretakerId);
+        return ResponseEntity.ok("Pet transferred to caretaker successfully.");
+    }
+}

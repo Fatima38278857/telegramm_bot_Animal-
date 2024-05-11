@@ -72,11 +72,8 @@ public class VolunteerServiceImpl implements VolunteerService {
             Volunteer volunteer = volunteerOptional.get();
             Pet pet = petOptional.get();
             Caretaker caretaker = caretakerOptional.get();
-
-            // Назначаем усыновителя
             pet.setCaretaker(caretaker);
 
-            // Обновляем запись о животном в базе данных
             petRepository.save(pet);
         } else {
             throw new IllegalArgumentException("Invalid volunteer, pet, or caretaker ID.");
@@ -96,5 +93,49 @@ public class VolunteerServiceImpl implements VolunteerService {
         } else {
             throw new IllegalArgumentException("Invalid caretaker ID.");
         }
+    }
+
+    @Override
+    public void checkCaretakerReport(Long caretakerId, String report) {
+        Caretaker caretaker = caretakerRepository.findById(caretakerId).orElseThrow(() -> new ResourceNotFoundException("Caretaker not found with id: " + caretakerId));
+        caretaker.setReport(report);
+        caretakerRepository.save(caretaker);
+    }
+
+    @Override
+    public void makeComments(Long caretakerId, String comments) {
+        Caretaker caretaker = caretakerRepository.findById(caretakerId).orElseThrow(() -> new ResourceNotFoundException("Caretaker not found with id: " + caretakerId));
+        caretaker.setComments(comments);
+        caretakerRepository.save(caretaker);
+    }
+
+    @Override
+    public void extendTrialPeriod(Long caretakerId, LocalDate newEndDate) {
+        Caretaker caretaker = caretakerRepository.findById(caretakerId).orElseThrow(() -> new ResourceNotFoundException("Caretaker not found with id: " + caretakerId));
+        caretaker.setTrialPeriodEnd(newEndDate);
+        caretakerRepository.save(caretaker);
+    }
+
+    @Override
+    public void transferPetToCaretaker(Long volunteerId, Long petId, Long caretakerId) {
+        Volunteer volunteer = volunteerRepository.findById(volunteerId)
+                .orElseThrow(() -> new IllegalArgumentException("Volunteer not found with id: " + volunteerId));
+        Pet pet = petRepository.findById(petId)
+                .orElseThrow(() -> new IllegalArgumentException("Pet not found with id: " + petId));
+        Caretaker caretaker = caretakerRepository.findById(caretakerId)
+                .orElseThrow(() -> new IllegalArgumentException("Caretaker not found with id: " + caretakerId));
+
+        if (volunteer == null || pet == null || caretaker == null) {
+            throw new IllegalArgumentException("Invalid volunteer, pet, or caretaker");
+        }
+
+        if (pet.isAdopted()) {
+            throw new IllegalStateException("Pet is already adopted");
+        }
+
+        pet.setCaretaker(caretaker);
+        pet.setAdopted(true);
+
+        petRepository.save(pet);
     }
 }
