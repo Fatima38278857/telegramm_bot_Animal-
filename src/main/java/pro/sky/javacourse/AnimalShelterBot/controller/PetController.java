@@ -4,10 +4,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import pro.sky.javacourse.AnimalShelterBot.model.Caretaker;
 import pro.sky.javacourse.AnimalShelterBot.model.Pet;
 import pro.sky.javacourse.AnimalShelterBot.model.PetStatus;
-import pro.sky.javacourse.AnimalShelterBot.model.Shelter;
 import pro.sky.javacourse.AnimalShelterBot.service.PetService;
 
 import java.io.IOException;
@@ -40,9 +38,9 @@ public class PetController {
         return ResponseEntity.ok().build();
     }
 
-    @PutMapping("{id}")
-    public ResponseEntity<Pet> edit(@PathVariable("id") Long id, @RequestBody Pet pet) {
-        Pet updatedPet = petService.edit(id, pet);
+    @PutMapping
+    public ResponseEntity<Pet> edit(@RequestBody Pet pet) {
+        Pet updatedPet = petService.edit(pet);
         if (updatedPet == null) {
             return ResponseEntity.notFound().build();
         }
@@ -50,8 +48,8 @@ public class PetController {
     }
 
     @PutMapping("trial/start")
-    public ResponseEntity<Pet> startTrial(@RequestBody Pet pet, @RequestBody Caretaker caretaker) {
-        Pet updatedPet = petService.startTrial(pet, caretaker);
+    public ResponseEntity<Pet> startTrial(@RequestBody Pet pet, @RequestParam Long caretakerId) {
+        Pet updatedPet = petService.startTrial(pet, caretakerId);
         if (updatedPet == null) {
             return ResponseEntity.notFound().build();
         }
@@ -66,6 +64,7 @@ public class PetController {
         }
         return ResponseEntity.ok(updatedPet);
     }
+
     @PutMapping("trial/plus30")
     public ResponseEntity<Pet> trialAdd30(@RequestBody Pet pet) {
         Pet updatedPet = petService.trialAdd30(pet);
@@ -157,8 +156,19 @@ public class PetController {
         }
         return ResponseEntity.ok(Collections.unmodifiableCollection(pets));
     }
+    @GetMapping("/available/{shelterId}")
+    public ResponseEntity<Collection<Pet>> findByStatus(@RequestParam Long shelterId) {
+        Collection<Pet> pets = petService.findAvailableByShelterId(shelterId);
+        if (pets.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(Collections.unmodifiableCollection(pets));
+    }
 
-    // DELETE - может быть сипользован
-
+    // DELETE - может быть использован для удаления некорректно введенного питомца
+    @DeleteMapping
+    public void delete(@RequestBody Pet pet) {
+        petService.delete(pet);
+    }
 
 }

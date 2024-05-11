@@ -4,9 +4,11 @@ import org.springframework.web.multipart.MultipartFile;
 import pro.sky.javacourse.AnimalShelterBot.model.Caretaker;
 import pro.sky.javacourse.AnimalShelterBot.model.Pet;
 import pro.sky.javacourse.AnimalShelterBot.model.PetStatus;
+import pro.sky.javacourse.AnimalShelterBot.model.PetType;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 
 public interface PetService {
     Pet add(Pet pet);
@@ -15,8 +17,11 @@ public interface PetService {
     Pet find(String name);
     Collection<Pet> getAll();
     Collection<Pet> findByStatus(PetStatus status);
-    Pet edit(Long id, Pet pet);
-    Pet startTrial(Pet pet, Caretaker caretaker);
+    List<Pet> findAvailableByShelterId(Long shelterId);
+    Collection<Pet> findByCaretakerId(Long caretakerId);
+    Collection<Pet> findByCaretakerIdAndShelterId(Long id, Long shelterId);
+    Pet edit(Pet pet);
+    Pet startTrial(Pet pet, Long caretakerId);
     Pet trialAdd15(Pet pet);
     Pet trialAdd30(Pet pet);
     Pet adopt(Pet pet);
@@ -24,4 +29,7 @@ public interface PetService {
     Pet suspended(Pet pet);
     Pet available(Pet pet);
     Pet ill(Pet pet);
+    void delete(Pet pet);
+    List<PetType> getAvailablePetTypes(Long shelterId);
+    Long findChatIdByPetId(Long petId);
 }

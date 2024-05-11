@@ -3,11 +3,10 @@ package pro.sky.javacourse.AnimalShelterBot.configuration;
 import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Component;
 import pro.sky.javacourse.AnimalShelterBot.model.*;
+import pro.sky.javacourse.AnimalShelterBot.service.CaretakerServiceImpl;
 import pro.sky.javacourse.AnimalShelterBot.service.PetService;
 import pro.sky.javacourse.AnimalShelterBot.service.ShelterServiceImpl;
 import pro.sky.javacourse.AnimalShelterBot.service.VolunteerServiceImpl;
-
-import java.util.List;
 
 
 @Component
@@ -15,11 +14,13 @@ public class TestDataInjector {
     private final ShelterServiceImpl shelterService;
     private final VolunteerServiceImpl volunteerService;
     private final PetService petService;
+    private final CaretakerServiceImpl caretakerService;
 
-    public TestDataInjector(ShelterServiceImpl shelterService, VolunteerServiceImpl volunteerService, PetService petService) {
+    public TestDataInjector(ShelterServiceImpl shelterService, VolunteerServiceImpl volunteerService, PetService petService, CaretakerServiceImpl caretakerService) {
         this.shelterService = shelterService;
         this.volunteerService = volunteerService;
         this.petService = petService;
+        this.caretakerService = caretakerService;
     }
 
     // UNCOMMENT METHODS TO FILL DATABASE WITH TEST DATA
@@ -30,6 +31,7 @@ public class TestDataInjector {
 //        setMainVolunteer();
 //        setOtherVolunteers();
 //        initPets();
+//        initCaretakers();
     }
 
     private void initShelters() {
@@ -123,5 +125,13 @@ public class TestDataInjector {
         petService.getAll().forEach(petService::available);
         petService.ill(petService.find("Тортилла"));
     }
+
+    private void initCaretakers() {
+        Caretaker caretaker = new Caretaker("Павел Павел", "Великий Новгород",
+                "4321 654321", "+7555444333", 6725110697L);
+        caretakerService.add(caretaker);
+    }
+
+
 }
 

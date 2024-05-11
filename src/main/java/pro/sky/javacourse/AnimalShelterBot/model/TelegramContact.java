@@ -7,7 +7,7 @@ import jakarta.persistence.ManyToOne;
 
 import java.util.Objects;
 
-@Entity
+@Entity(name = "telegramContacts")
 public class TelegramContact {
     @Id
     private String phoneNumber;

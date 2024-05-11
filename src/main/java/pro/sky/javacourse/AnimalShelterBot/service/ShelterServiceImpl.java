@@ -20,7 +20,7 @@ import java.util.List;
 public class ShelterServiceImpl implements ShelterService {
     private final ShelterRepository shelterRepository;
     private final VolunteerRepository volunteerRepository;
-    private final Logger logger = LoggerFactory.getLogger(ShelterRepository.class);
+    private final Logger logger = LoggerFactory.getLogger(ShelterServiceImpl.class);
 
     public ShelterServiceImpl(ShelterRepository shelterRepository, VolunteerRepository volunteerRepository) {
         this.shelterRepository = shelterRepository;
@@ -93,6 +93,7 @@ public class ShelterServiceImpl implements ShelterService {
 
     @Override
     public void setMainVolunteer(Long shelterId, Long mainVolunteerId) {
+        logger.info("Was invoked method ShelterService.setMainVolunteer({}, {})", shelterId, mainVolunteerId);
         Volunteer volunteer = volunteerRepository.findById(mainVolunteerId).orElse(null);
         Shelter shelter = shelterRepository.findById(shelterId).orElse(null);
         if (volunteer == null || shelter == null) {
@@ -105,6 +106,7 @@ public class ShelterServiceImpl implements ShelterService {
 
     @Override
     public Volunteer getMainVolunteer(Long shelterId) {
+        logger.info("Was invoked method ShelterService.getMainVolunteer({})", shelterId);
         Shelter shelter = find(shelterId);
         if (shelter == null) {
             return null;
@@ -114,6 +116,7 @@ public class ShelterServiceImpl implements ShelterService {
 
     @Override
     public Collection<Volunteer> getVolunteers(Long shelterId) {
+        logger.info("Was invoked method ShelterService.getVolunteers({})", shelterId);
         Shelter shelter = find(shelterId);
         if (shelter == null) {
             return null;
@@ -122,15 +125,17 @@ public class ShelterServiceImpl implements ShelterService {
     }
 
     private String getExtensions(String fileName) {
-        logger.info("Was invoked method AvatarService.getExtensions({})", fileName);
+        logger.info("Was invoked method ShelterService.getExtensions({})", fileName);
         return fileName.substring(fileName.lastIndexOf(".") + 1);
     }
 
     @Override
-    public void delete(Long id) {
-        logger.info("Was invoked method ShelterService.delete({})", id);
-        logger.debug("Method delete(id) executes findById(id)");
-        shelterRepository.deleteById(id);
-        logger.info("Was invoked method ShelterService.delete({})", id);
+    public void delete(Shelter shelter) {
+        logger.info("Was invoked method ShelterService.delete({})", shelter);
+        Shelter shelterFromDb = shelterRepository.findById(shelter.getId()).orElse(null);
+        if (shelterFromDb == null) {
+            return;
+        }
+        shelterRepository.deleteById(shelter.getId());
     }
 }

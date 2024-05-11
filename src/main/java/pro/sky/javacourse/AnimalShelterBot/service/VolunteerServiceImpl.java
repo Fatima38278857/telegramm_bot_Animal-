@@ -37,6 +37,7 @@ public class VolunteerServiceImpl implements VolunteerService{
 
     @Override
     public Collection<Shelter> getShelters(Long id) {
+        logger.info("Was invoked method VolunteerService.getShelters({})", id);
         Volunteer volunteer = find(id);
         return volunteer.getShelters();
     }
@@ -102,9 +103,7 @@ public class VolunteerServiceImpl implements VolunteerService{
     @Override
     public void delete(Long id) {
         logger.info("Was invoked method VolunteerService.delete({})", id);
-        logger.debug("Method delete(id) executes findById(id)");
         volunteerRepository.deleteById(id);
-        logger.info("Was invoked method VolunteerService.delete({})", id);
     }
 
 }

@@ -26,6 +26,19 @@ public class Caretaker {
     public Caretaker() {
     }
 
+    public Caretaker(String name, String address, String passport, String phoneNumber, Long chatId) {
+        this.name = name;
+        this.address = address;
+        this.passport = passport;
+        this.phoneNumber = phoneNumber;
+        this.chatId = chatId;
+    }
+
+    public Caretaker(Long id, String name, String address, String passport, String phoneNumber, Long chatId) {
+        this(name, address, passport, phoneNumber, chatId);
+        this.id = id;
+    }
+
     public Caretaker(String name) {
         this.name = name;
     }
@@ -102,7 +115,6 @@ public class Caretaker {
                 ", address='" + address + '\'' +
                 ", passport='" + passport + '\'' +
                 ", chatId=" + chatId +
-                ", pets=" + pets +
                 '}';
     }
 }

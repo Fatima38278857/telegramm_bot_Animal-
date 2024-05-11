@@ -42,7 +42,6 @@ public class Pet {
     @JoinColumn(name = "caretaker_id")
     private Caretaker caretaker;
 
-
     public Pet() {
     }
 
@@ -55,6 +54,18 @@ public class Pet {
         this.conditions = conditions;
         this.shelter = shelter;
         this.status = PetStatus.ОФОРМЛЯЕТСЯ;
+    }
+
+    public Pet(Long id, String name, Integer age, PetType type, String abilities, String restrictions, String conditions, Shelter shelter, PetStatus status) {
+        this.id = id;
+        this.name = name;
+        this.age = age;
+        this.type = type;
+        this.abilities = abilities;
+        this.restrictions = restrictions;
+        this.conditions = conditions;
+        this.shelter = shelter;
+        this.status = status;
     }
 
     public String getName() {
@@ -201,9 +212,7 @@ public class Pet {
                 ", age=" + age +
                 ", type='" + type + '\'' +
                 ", restrictions='" + restrictions + '\'' +
-                ", status='" + status + '\'' +
-                ", volunteer='" + caretaker.getId() + '\'' +
-                ", shelter=" + shelter.getName() +
+                ", status='" + status.name() + '\'' +
                 '}';
     }
 }

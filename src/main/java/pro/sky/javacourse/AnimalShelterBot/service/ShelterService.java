@@ -19,7 +19,7 @@ public interface ShelterService {
 
     Shelter edit(Long id, Shelter shelter);
 
-    void delete(Long id);
+    void delete(Shelter shelter);
 
     void uploadLocationMap(Long shelterId, MultipartFile locationMapFile) throws IOException;
 

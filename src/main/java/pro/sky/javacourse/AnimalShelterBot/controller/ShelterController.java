@@ -96,11 +96,9 @@ public class ShelterController {
         return ResponseEntity.ok().build();
     }
 
-
-    @DeleteMapping("{id}")
-    public void delete(@PathVariable("id") Long id) {
-            shelterService.delete(id);
+    @DeleteMapping
+    public void delete(@RequestBody Shelter shelter) {
+        shelterService.delete(shelter);
     }
-
 
 }

@@ -8,7 +8,6 @@ import org.springframework.web.multipart.MultipartFile;
 import pro.sky.javacourse.AnimalShelterBot.model.*;
 import pro.sky.javacourse.AnimalShelterBot.repository.CaretakerRepository;
 import pro.sky.javacourse.AnimalShelterBot.repository.PetRepository;
-import pro.sky.javacourse.AnimalShelterBot.repository.ShelterRepository;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -18,15 +17,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 @Service
 public class PetServiceImpl implements PetService {
-    private PetRepository petRepository;
-    private CaretakerRepository caretakerRepository;
-    private final Logger logger = LoggerFactory.getLogger(ShelterRepository.class);
+    private final PetRepository petRepository;
+    private final CaretakerRepository caretakerRepository;
+    private final Logger logger = LoggerFactory.getLogger(PetServiceImpl.class);
 
-    public PetServiceImpl(PetRepository petRepository) {
+    public PetServiceImpl(PetRepository petRepository, CaretakerRepository caretakerRepository) {
         this.petRepository = petRepository;
+        this.caretakerRepository = caretakerRepository;
     }
 
     @Override
@@ -60,30 +63,53 @@ public class PetServiceImpl implements PetService {
 
     @Override
     public Pet find(Long id) {
+        logger.info("Was invoked method PetService.find({})", id);
         return petRepository.findById(id).orElse(null);
     }
 
     @Override
     @Transactional
     public Pet find(String name) {
+        logger.info("Was invoked method PetService.find({})", name);
         return petRepository.findByName(name).orElse(null);
     }
 
     @Override
+    @Transactional
     public Collection<Pet> getAll() {
+        logger.info("Was invoked method PetService.getAll()");
         return petRepository.findAll();
     }
 
     @Override
     @Transactional
     public Collection<Pet> findByStatus(PetStatus status) {
+        logger.info("Was invoked method PetService.findByStatus({})", status);
         return petRepository.findByStatus(status);
     }
 
     @Override
-    public Pet edit(Long id, Pet pet) {
-        logger.info("Was invoked method PetService.edit({}, {})", id, pet);
-        return petRepository.findById(id)
+    @Transactional
+    public List<Pet> findAvailableByShelterId(Long shelterId) {
+        logger.info("Was invoked method PetService.findAvailableByShelterId({})", shelterId);
+        return petRepository.findAvailableByShelterId(shelterId);
+    }
+
+    @Override
+    @Transactional
+    public Collection<Pet> findByCaretakerId(Long caretakerId) {
+        return petRepository.findByCaretakerId(caretakerId);
+    }
+    @Override
+    @Transactional
+    public Collection<Pet> findByCaretakerIdAndShelterId(Long caretakerId, Long shelterId) {
+        return petRepository.findByCaretakerIdAndShelterId(caretakerId, shelterId);
+    }
+
+    @Override
+    public Pet edit(Pet pet) {
+        logger.info("Was invoked method PetService.edit({})", pet);
+        return petRepository.findById(pet.getId())
                 .map(found -> {
                     found.setName(pet.getName());
                     found.setAge(pet.getAge());
@@ -97,15 +123,16 @@ public class PetServiceImpl implements PetService {
     }
 
     @Override
-    public Pet startTrial(Pet pet, Caretaker caretaker) {
+    @Transactional
+    public Pet startTrial(Pet pet, Long caretakerId) {
         logger.info("Was invoked method PetService.startTrial({})", pet);
-        Caretaker caretakerFound = caretakerRepository.findById(caretaker.getId()).orElse(null);
+        Caretaker caretakerFound = caretakerRepository.findById(caretakerId).orElse(null);
         Pet found = petRepository.findById(pet.getId()).orElse(null);
         if (caretakerFound == null || found == null) return null;
         found.setStatus(PetStatus.ОПЕКА);
         found.setTrialStart(LocalDateTime.now());
         found.setTrialEnd(LocalDateTime.now().plusDays(30));
-        found.setCaretaker(caretaker);
+        found.setCaretaker(caretakerFound);
         petRepository.save(found);
         caretakerFound.getPets().add(pet);
         caretakerRepository.save(caretakerFound);
@@ -126,6 +153,7 @@ public class PetServiceImpl implements PetService {
 
     @Override
     public Pet adopt(Pet pet) {
+        logger.info("Was invoked method PetService.adopt({})", pet);
         return petRepository.findById(pet.getId())
                 .map(found -> {
                     if (pet.getStatus() != PetStatus.ОПЕКА
@@ -137,6 +165,7 @@ public class PetServiceImpl implements PetService {
 
     @Override
     public Pet returned(Pet pet) {
+        logger.info("Was invoked method PetService.returned({})", pet);
         return petRepository.findById(pet.getId())
                 .map(found -> {
                     found.setStatus(PetStatus.ОФОРМЛЯЕТСЯ);
@@ -157,6 +186,7 @@ public class PetServiceImpl implements PetService {
 
     @Override
     public Pet suspended(Pet pet) {
+        logger.info("Was invoked method PetService.suspended({})", pet);
         return petRepository.findById(pet.getId())
                 .map(found -> {
                     if (pet.getStatus() != PetStatus.ОПЕКА || pet.getStatus() != PetStatus.ВОЗВРАТ) return null;
@@ -167,6 +197,7 @@ public class PetServiceImpl implements PetService {
 
     @Override
     public Pet available(Pet pet) {
+        logger.info("Was invoked method PetService.available({})", pet);
         return petRepository.findById(pet.getId())
                 .map(found -> {
                     if (pet.getStatus() == PetStatus.ОПЕКА
@@ -180,6 +211,7 @@ public class PetServiceImpl implements PetService {
 
     @Override
     public Pet ill(Pet pet) {
+        logger.info("Was invoked method PetService.ill({})", pet);
         return petRepository.findById(pet.getId())
                 .map(found -> {
                     if (pet.getStatus() == PetStatus.ОПЕКА
@@ -191,7 +223,31 @@ public class PetServiceImpl implements PetService {
                 }).orElse(null);
     }
 
+    @Override
+    public void delete(Pet pet) {
+        logger.info("Was invoked method PetService.delete({})", pet);
+        Pet petFromDb = petRepository.findById(pet.getId()).orElse(null);
+        if (petFromDb == null) {
+            return;
+        }
+        petRepository.deleteById(pet.getId());
+    }
+
+    @Override
+    public List<PetType> getAvailablePetTypes(Long shelterId) {
+        logger.info("Was invoked method PetService.getAvailablePetTypes({})", shelterId);
+        List<PetType> petTypes = petRepository.getAvailablePetsTypesByShelterId(shelterId);
+        petTypes.sort(Comparator.comparingInt(Enum::ordinal));
+        return Collections.unmodifiableList(petTypes);
+    }
+
+    @Override
+    public Long findChatIdByPetId(Long petId) {
+        return petRepository.findChatIdById(petId);
+    }
+
     public Pet trialAdd(Pet pet, int days) {
+        logger.info("Was invoked method PetService.trialAdd({},{})", pet, days);
         return petRepository.findById(pet.getId())
                 .map(found -> {
                     if (pet.getStatus() != PetStatus.ОПЕКА) return null;
