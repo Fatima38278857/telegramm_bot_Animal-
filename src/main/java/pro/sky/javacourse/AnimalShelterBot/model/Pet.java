@@ -16,7 +16,18 @@ public class Pet {
 
     public Pet() {
     }
+    @ManyToOne
+    @JoinColumn(name = "caretaker_id")
+    private Caretaker caretaker;
 
+    // Геттер и сеттер для усыновителя
+    public Caretaker getCaretaker() {
+        return caretaker;
+    }
+
+    public void setCaretaker(Caretaker caretaker) {
+        this.caretaker = caretaker;
+    }
     public Pet(String name, String species, int age) {
         this.name = name;
         this.species = species;

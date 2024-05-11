@@ -17,20 +17,7 @@ public interface VolunteerService {
 
     void changeWorkingStatus(long volunteerId, boolean working);
 
-    void assignPetToAdopter(long petId, long shelterId);
+    void assignPetToCaretaker(Long volunteerId, Long petId, Long caretakerId);
 
-    // Метод для назначения испытательного срока
-    void setTrialPeriod(long shelterId, LocalDate startDate, LocalDate endDate);
-
-    // Метод для проверки отчета усыновителя
-    boolean checkAdopterReport(long shelterId);
-
-    // Метод для добавления замечаний усыновителю
-    void makeCommentsToAdopter(long shelterId, String comments);
-
-    // Метод для продления испытательного срока
-    void extendTrialPeriod(long shelterId, LocalDate newEndDate);
-
-    // Метод для забирания или отдачи животного у/от усыновителя
-    void takeOrGivePet(long petId, boolean takeBack);
+    void setTrialPeriodEnd(Long caretakerId, LocalDate newEndDate);
 }

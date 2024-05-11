@@ -1,10 +1,10 @@
 package pro.sky.javacourse.AnimalShelterBot.service.impl;
 
+import pro.sky.javacourse.AnimalShelterBot.model.Caretaker;
 import pro.sky.javacourse.AnimalShelterBot.model.Pet;
-import pro.sky.javacourse.AnimalShelterBot.model.Shelter;
 import pro.sky.javacourse.AnimalShelterBot.model.Volunteer;
+import pro.sky.javacourse.AnimalShelterBot.repository.CaretakerRepository;
 import pro.sky.javacourse.AnimalShelterBot.repository.PetRepository;
-import pro.sky.javacourse.AnimalShelterBot.repository.ShelterRepository;
 import pro.sky.javacourse.AnimalShelterBot.repository.VolunteerRepository;
 import pro.sky.javacourse.AnimalShelterBot.service.VolunteerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,16 +19,15 @@ public class VolunteerServiceImpl implements VolunteerService {
 
     @Autowired
     private final VolunteerRepository volunteerRepository;
-    private final ShelterRepository shelterRepository;
     private final PetRepository petRepository;
+    private final CaretakerRepository caretakerRepository;
 
-    // Инъекция зависимостей через конструктор
     public VolunteerServiceImpl(VolunteerRepository volunteerRepository,
-                                ShelterRepository adopterRepository,
+                                CaretakerRepository caretakerRepository,
                                 PetRepository petRepository) {
         this.volunteerRepository = volunteerRepository;
-        this.shelterRepository = adopterRepository;
         this.petRepository = petRepository;
+        this.caretakerRepository = caretakerRepository;
     }
 
     @Override
@@ -64,62 +63,38 @@ public class VolunteerServiceImpl implements VolunteerService {
     }
 
     @Override
-    public void assignPetToAdopter(long petId, long shelterId) {
-        Pet pet = petRepository.findById(petId).orElseThrow(() -> new RuntimeException("Pet not found"));
-        Shelter shelter = shelterRepository.findById(shelterId).orElseThrow(() -> new RuntimeException("Adopter not found"));
-        pet.setShelter(shelter);
-        petRepository.save(pet);
-    }
+    public void assignPetToCaretaker(Long volunteerId, Long petId, Long caretakerId) {
+        Optional<Volunteer> volunteerOptional = volunteerRepository.findById(volunteerId);
+        Optional<Pet> petOptional = petRepository.findById(petId);
+        Optional<Caretaker> caretakerOptional = caretakerRepository.findById(caretakerId);
 
-    // Метод для назначения испытательного срока
-    @Override
-    public void setTrialPeriod(long shelterId, LocalDate startDate, LocalDate endDate) {
-        Shelter shelter = shelterRepository.findById(shelterId).orElseThrow(() -> new RuntimeException("Adopter not found"));
-        shelter.setTrialPeriodStart(startDate);
-        shelter.setTrialPeriodEnd(endDate);
-        shelterRepository.save(shelter);
-    }
+        if (volunteerOptional.isPresent() && petOptional.isPresent() && caretakerOptional.isPresent()) {
+            Volunteer volunteer = volunteerOptional.get();
+            Pet pet = petOptional.get();
+            Caretaker caretaker = caretakerOptional.get();
 
-    // Метод для проверки отчета усыновителя
-    @Override
-    public boolean checkAdopterReport(long shelterId) {
-        Shelter shelter = shelterRepository.findById(shelterId).orElseThrow(() -> new RuntimeException("Adopter not found"));
-        return shelter.isReportApproved();
-    }
+            // Назначаем усыновителя
+            pet.setCaretaker(caretaker);
 
-    // Метод для добавления замечаний усыновителю
-    @Override
-    public void makeCommentsToAdopter(long shelterId, String comments) {
-        Shelter shelter = shelterRepository.findById(shelterId).orElseThrow(() -> new RuntimeException("Adopter not found"));
-
-        shelter.setComments(comments);
-
-        shelterRepository.save(shelter);
-    }
-
-    // Метод для продления испытательного срока
-    @Override
-    public void extendTrialPeriod(long shelterId, LocalDate newEndDate) {
-        Shelter shelter = shelterRepository.findById(shelterId).orElseThrow(() -> new RuntimeException("Adopter not found"));
-
-        shelter.setTrialPeriodEnd(newEndDate);
-
-        shelterRepository.save(shelter);
-    }
-
-    // Метод для забирания или отдачи животного у/от усыновителя
-    @Override
-    public void takeOrGivePet(long petId, boolean takeBack) {
-        Pet pet = petRepository.findById(petId).orElseThrow(() -> new RuntimeException("Pet not found"));
-
-        if (takeBack) {
-            pet.setShelter(null);
+            // Обновляем запись о животном в базе данных
+            petRepository.save(pet);
         } else {
-
-            Shelter newShelter = new Shelter();
-            pet.setShelter(newShelter);
+            throw new IllegalArgumentException("Invalid volunteer, pet, or caretaker ID.");
         }
+    }
 
-        petRepository.save(pet);
+    @Override
+    public void setTrialPeriodEnd(Long caretakerId, LocalDate newEndDate) {
+        Optional<Caretaker> caretakerOptional = caretakerRepository.findById(caretakerId);
+
+        if (caretakerOptional.isPresent()) {
+            Caretaker caretaker = caretakerOptional.get();
+            caretaker.setTrialPeriodEnd(newEndDate);
+
+            // Обновляем запись об усыновителе в базе данных
+            caretakerRepository.save(caretaker);
+        } else {
+            throw new IllegalArgumentException("Invalid caretaker ID.");
+        }
     }
 }

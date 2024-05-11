@@ -1,6 +1,7 @@
 package pro.sky.javacourse.AnimalShelterBot.Controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -48,53 +49,14 @@ public class VolunteerController {
         volunteerService.changeWorkingStatus(volunteerId, working);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
-    // Endpoint для назначения животного усыновителю
-    @PostMapping("/assign-pet-to-shelter")
-    public ResponseEntity<?> assignPetToAdopter(@RequestParam int petId, @RequestParam int adopterId) {
-        volunteerService.assignPetToAdopter(petId, adopterId);
-        return ResponseEntity.ok("Pet assigned to adopter successfully");
+    @PutMapping("/{volunteerId}/assign-pet/{petId}/to-caretaker/{caretakerId}")
+    public ResponseEntity<String> assignPetToCaretaker(@PathVariable Long volunteerId, @PathVariable Long petId, @PathVariable Long caretakerId) {
+        volunteerService.assignPetToCaretaker(volunteerId, petId, caretakerId);
+        return ResponseEntity.ok("Pet assigned to caretaker successfully.");
     }
 
-    // Endpoint для назначения испытательного срока
-    @PostMapping("/set-trial-period")
-    public ResponseEntity<?> setTrialPeriod(@RequestParam int shelterId, @RequestParam String startDate, @RequestParam String endDate) {
-        volunteerService.setTrialPeriod(shelterId, LocalDate.parse(startDate), LocalDate.parse(endDate));
-        return ResponseEntity.ok("Trial period set successfully");
-    }
-
-    // Endpoint для проверки отчета усыновителя
-    @GetMapping("/check-adopter-report")
-    public ResponseEntity<?> checkAdopterReport(@RequestParam int shelterId) {
-        boolean reportApproved = volunteerService.checkAdopterReport(shelterId);
-        if (reportApproved) {
-            return ResponseEntity.ok("Adopter's report approved");
-        } else {
-            return ResponseEntity.ok("Adopter's report not approved");
-        }
-    }
-
-    // Endpoint для делания замечаний усыновителю
-    @PostMapping("/make-comments-to-shelter")
-    public ResponseEntity<?> makeCommentsToAdopter(@RequestParam int shelterId, @RequestParam String comments) {
-        volunteerService.makeCommentsToAdopter(shelterId, comments);
-        return ResponseEntity.ok("Comments added successfully");
-    }
-
-    // Endpoint для продления испытательного срока
-    @PostMapping("/extend-trial-period")
-    public ResponseEntity<?> extendTrialPeriod(@RequestParam int shelterId, @RequestParam String newEndDate) {
-        volunteerService.extendTrialPeriod(shelterId, LocalDate.parse(newEndDate));
-        return ResponseEntity.ok("Trial period extended successfully");
-    }
-
-    // Endpoint для забирания или отдачи животного у/от усыновителя
-    @PostMapping("/take-or-give-pet")
-    public ResponseEntity<?> takeOrGivePet(@RequestParam int petId, @RequestParam boolean takeBack) {
-        volunteerService.takeOrGivePet(petId, takeBack);
-        if (takeBack) {
-            return ResponseEntity.ok("Pet taken back from adopter successfully");
-        } else {
-            return ResponseEntity.ok("Pet given to adopter successfully");
-        }
-    }
-}
+    @PutMapping("/{caretakerId}/trial-period-end")
+    public ResponseEntity<String> setTrialPeriodEnd(@PathVariable Long caretakerId, @RequestParam("newEndDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate newEndDate) {
+        volunteerService.setTrialPeriodEnd(caretakerId, newEndDate);
+        return ResponseEntity.ok("Trial period end date set successfully.");
+    }}
