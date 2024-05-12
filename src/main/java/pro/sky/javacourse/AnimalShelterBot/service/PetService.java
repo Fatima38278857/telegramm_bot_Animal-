@@ -19,6 +19,7 @@ public interface PetService {
     Collection<Pet> findByStatus(PetStatus status);
     List<Pet> findAvailableByShelterId(Long shelterId);
     Collection<Pet> findByCaretakerId(Long caretakerId);
+    Collection<Pet> findByShelterId(Long shelterId);
     Collection<Pet> findByCaretakerIdAndShelterId(Long id, Long shelterId);
     Pet edit(Pet pet);
     Pet startTrial(Pet pet, Long caretakerId);

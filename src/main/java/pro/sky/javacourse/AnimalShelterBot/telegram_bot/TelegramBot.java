@@ -43,8 +43,9 @@ public class TelegramBot extends TelegramLongPollingBot {
             "\nПожалуйста, выберите приют.";
     private final String ALTERNATIVE_TEXT = "Неизвестная команда!";
     private BotState keyboardState;
-    private final Map<Long, BotState> botStates = new HashMap<Long, BotState>();
-//    private final Map<Long, Long> shelterIdByChatId = new HashMap<Long, Long>();
+    private final Map<Long, BotState> botStates = new HashMap<Long, BotState>(); // Key is chatId
+    private final Map<Long, Long> shelterIdByChatId = new HashMap<Long, Long>(); // Key is chatId
+    private final Map<Long, Long> petIdByChatId = new HashMap<Long, Long>(); // Key is chatId
 
 
     /**
@@ -95,8 +96,39 @@ public class TelegramBot extends TelegramLongPollingBot {
         if (!botStates.containsKey(chatId)) {
             botStates.put(chatId, BotState.COMMON);
         }
-        // all bot states
-        if (update.hasMessage() && update.getMessage().hasText()) {
+        // ALL BOT STATES
+
+//        Code for replying incoming message (
+//        - if replying user message then reply should be sent to corresponding chat.
+
+        if (update.hasMessage() && update.getMessage().getReplyToMessage() != null) {
+            Long myChatId = update.getMessage().getChatId();
+            Long targetChatId;
+            try {
+                targetChatId = update.getMessage().getReplyToMessage().getForwardFrom().getId();
+            } catch (NullPointerException e) {
+                logger.info("Error replying to message, getForwardFrom is null, possibly chatId " + myChatId +
+                        " is trying to reply his (her) own or bots message");
+                sendText(myChatId, ALTERNATIVE_TEXT);
+                return;
+            }
+            BotState previousState = botStates.get(myChatId);
+            botStates.put(myChatId, BotState.REPLY);
+            Message message = update.getMessage();
+            User user = update.getMessage().getFrom();
+            Integer messageId = update.getMessage().getMessageId();
+            ForwardMessage forwardMessage = new ForwardMessage(targetChatId.toString(), chatId.toString(), messageId);
+            try {
+                execute(forwardMessage);
+            } catch (TelegramApiException e) {
+                logger.error("Error executing message: " + e.toString());
+            }
+            logger.info(user.getFirstName() + ", chatId " + chatId + ", wrote a reply to chatId " + targetChatId + " " + update.getMessage().getText());
+            botStates.put(myChatId, previousState);
+        }
+// End of code for replying incoming messages
+
+        if (update.hasMessage() && update.getMessage().hasText() && update.getMessage().getReplyToMessage() == null) {
             Message message = update.getMessage();
             User user = message.getFrom();
             logger.info(user.getFirstName() + ", chatId " + chatId + ", wrote " + message.getText());
@@ -138,11 +170,12 @@ public class TelegramBot extends TelegramLongPollingBot {
             case COLLECT_DATA -> onUpdateReceivedCollectData(update);
             case VOLUNTEER_CHAT -> onUpdateReceivedVolunteerChat(update);
             case REPORT -> onUpdateReceivedReport(update);
+            case REPLY -> onUpdateReceivedReply(update);
         }
     }
 
     private void onUpdateReceivedCommon(Update update) {
-        if (update.hasMessage() && update.getMessage().hasText()) {
+        if (update.hasMessage() && update.getMessage().hasText() && update.getMessage().getReplyToMessage() == null) {
             if (update.hasMessage() && update.getMessage().hasText()) {
                 Message message = update.getMessage();
                 User user = message.getFrom();
@@ -229,10 +262,6 @@ public class TelegramBot extends TelegramLongPollingBot {
     private void onUpdateReceivedVolunteerChat(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()
                 && update.getMessage().getText().equals("Выйти из чата")) {
-
-// как я могу получить shelter, если udate содержит только "выйти из чата"???????????
-            Long volunteerChatId = 1722853186L; // must be retrieved fom DB using shelterId
-
             ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove(true, true);
             User user = update.getMessage().getFrom();
             Long chatId = update.getMessage().getChatId();
@@ -241,32 +270,14 @@ public class TelegramBot extends TelegramLongPollingBot {
                     .replyMarkup(keyboardRemove)
                     .build();
             executeAndSendMessage(message);
-            logger.info(user + " chatId " + chatId + " closed chat with volunteerId " + volunteerChatId);
+            logger.info(user + " chatId " + chatId + " closed chat with volunteer.");
             botStates.put(chatId, BotState.COMMON);
         } else if (update.hasMessage() && update.getMessage().hasText()) {
-            Long volunteerChatId = 1722853186L; // must be retrieved fom DB using shelterId
-            User user = update.getMessage().getFrom();
             Long chatId = update.getMessage().getChatId();
+            Long volunteerChatId = botService.findShelter(shelterIdByChatId.get(chatId)).getMainVolunteer().getChatId();
+            User user = update.getMessage().getFrom();
             Integer messageId = update.getMessage().getMessageId();
             ForwardMessage forwardMessage = new ForwardMessage(volunteerChatId.toString(), chatId.toString(), messageId);
-
-
-            // ЭТО КОД ДЛЯ ОТПРАВКИ ОТВЕТА НА СООБЩЕНИЕ, ЕГО БУДЕТ ИСПОЛЬВОВАТЬ ВОЛОНТЕР ПРИ ОБЩЕНИИ С КЛИЕНТОМ
-            if (update.getMessage().getReplyToMessage() != null) {
-
-                System.out.println(update.getMessage().getFrom());
-                System.out.println();
-                System.out.println(update.getMessage().getReplyToMessage().getForwardFrom().getId());
-
-                SendMessage m = new SendMessage();
-                m.setChatId(6725110697L);
-                m.setText("Working");
-                executeAndSendMessage(m);
-            }
-
-
-            // КОНЕЦ КОДА ДЛЯ ОТВЕТА НА СООБЩЕНИЕ
-
 
             try {
                 execute(forwardMessage);
@@ -278,6 +289,9 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void onUpdateReceivedReport(Update update) {
+
+    }
+    private void onUpdateReceivedReply(Update update) {
 
     }
 
@@ -604,6 +618,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     protected void menuVolunteerChat(Long chatId, Long shelterId) {
+        shelterIdByChatId.put(chatId, shelterId);
         Shelter shelter = botService.findShelter(shelterId);
         botStates.put(chatId, BotState.VOLUNTEER_CHAT);
         SendMessage message = SendMessage.builder().chatId(chatId)
@@ -672,7 +687,12 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     protected void menuReportPetCurrent(Long petId) {
         Pet pet = botService.findPet(petId); // Будет использован при отправке отчета.
-        Long chatId = botService.findChatIdByPetId(petId);
+        Long chatId;
+        try {
+            chatId = botService.findChatIdByPetId(petId); // throws NPE when pet no longer have caretaker
+        } catch (NullPointerException e) {
+            return;
+        }
         SendMessage message = SendMessage.builder().chatId(chatId)
                 .text("Отправьте сообщение с текстом отчета:\n" +
                         "- Опишите рацион животного.\n" +
@@ -715,9 +735,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         executeAndSendMessage(message);
     }
 
-    // ИЗБАВИТЬСЯ ОТ ЗАХАРДКОЖЕНОГО АЙДИ ВОЛОНТЕРА 1722853186
-//    И АЙДИ ПОЛЬЗОВАТЕЛЯ(УСЫНОВИТЕЛЯ) 6725110697
-    // нестроить отправку ответных сообщений опекуну вместо "Working"
+
     // Сделать отправку и проверку отчетов. (report state, volunteer state)
 //    Сделать отрисовку изображений в сообщениях с картой приюта, аватаркой пета и отчета. Возможно в чате с волонтером.
 

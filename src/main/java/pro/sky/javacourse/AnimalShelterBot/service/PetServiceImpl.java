@@ -100,6 +100,14 @@ public class PetServiceImpl implements PetService {
     public Collection<Pet> findByCaretakerId(Long caretakerId) {
         return petRepository.findByCaretakerId(caretakerId);
     }
+
+    @Override
+    @Transactional
+    public Collection<Pet> findByShelterId(Long shelterId) {
+        logger.info("Was invoked method PetService.findByShelterId({})", shelterId);
+        return petRepository.findByShelterId(shelterId);
+    }
+
     @Override
     @Transactional
     public Collection<Pet> findByCaretakerIdAndShelterId(Long caretakerId, Long shelterId) {

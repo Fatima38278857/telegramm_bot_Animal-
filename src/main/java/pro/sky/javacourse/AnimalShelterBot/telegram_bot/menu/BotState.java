@@ -4,5 +4,6 @@ public enum BotState {
     COMMON,
     COLLECT_DATA,
     VOLUNTEER_CHAT,
-    REPORT
+    REPORT,
+    REPLY
 }

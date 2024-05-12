@@ -147,6 +147,14 @@ public class PetController {
         }
         return ResponseEntity.ok(pet);
     }
+    @GetMapping("/shelter")
+    public ResponseEntity<Collection<Pet>> findByShelterId(@RequestParam Long shelterId) {
+        Collection<Pet> pets = petService.findByShelterId(shelterId);
+        if (pets.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(Collections.unmodifiableCollection(pets));
+    }
 
     @GetMapping("{status}")
     public ResponseEntity<Collection<Pet>> findByStatus(@RequestParam PetStatus status) {
