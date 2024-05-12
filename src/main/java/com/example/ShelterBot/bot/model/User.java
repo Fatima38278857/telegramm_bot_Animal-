@@ -5,7 +5,7 @@ import com.example.ShelterBot.bot.enumm.StatusUser;
 import jakarta.persistence.*;
 
 import java.sql.Timestamp;
-import java.util.Objects;
+import java.util.*;
 
 /**
  *
@@ -17,6 +17,7 @@ public class User { // Пользователь
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_user")
     private Long id;
     @Column(name = "chatId")
     private Long chatId;
@@ -29,23 +30,35 @@ public class User { // Пользователь
 
     @Column(name = "registeredAt")
     private Timestamp registeredAt;
+    @OneToOne
+    @JoinColumn(name = "id")
+    private Dog dog;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private StatusUser status;
+    @OneToMany(mappedBy = "user") // Предполагая, что в сущности Report есть поле 'user', ссылающееся обратно на User
+    private final List<Report> reports = new ArrayList<>();
 
-    public User(Long id, Long chatId, String name, String lastName, String firstName, Timestamp registeredAt, StatusUser status) {
-        this.id = id;
+    public User(Long chatId, String name, String lastName, String firstName, Dog dog, Timestamp registeredAt, StatusUser status) {
         this.chatId = chatId;
         this.name = name;
         this.lastName = lastName;
         this.firstName = firstName;
+        this.dog =dog;
         this.registeredAt = registeredAt;
         this.status = status;
-
     }
 
     public User() {
+    }
+
+    public Dog getDog() {
+        return dog;
+    }
+
+    public void setDog(Dog dog) {
+        this.dog = dog;
     }
 
     public Long getId() {
@@ -96,7 +109,6 @@ public class User { // Пользователь
         this.registeredAt = registeredAt;
     }
 
-
     public StatusUser getStatus() {
         return status;
     }
@@ -105,17 +117,21 @@ public class User { // Пользователь
         this.status = status;
     }
 
+    public List<Report> getReports() {
+        return reports;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         User user = (User) o;
-        return Objects.equals(id, user.id) && Objects.equals(chatId, user.chatId) && Objects.equals(name, user.name) && Objects.equals(lastName, user.lastName) && Objects.equals(firstName, user.firstName) && Objects.equals(registeredAt, user.registeredAt) && status == user.status;
+        return Objects.equals(id, user.id) && Objects.equals(chatId, user.chatId) && Objects.equals(name, user.name) && Objects.equals(lastName, user.lastName) && Objects.equals(firstName, user.firstName) && Objects.equals(registeredAt, user.registeredAt) && Objects.equals(dog, user.dog) && status == user.status && Objects.equals(reports, user.reports);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, chatId, name, lastName, firstName, registeredAt, status);
+        return Objects.hash(id, chatId, name, lastName, firstName, registeredAt, dog, status, reports);
     }
 
     @Override
@@ -127,7 +143,9 @@ public class User { // Пользователь
                 ", lastName='" + lastName + '\'' +
                 ", firstName='" + firstName + '\'' +
                 ", registeredAt=" + registeredAt +
+                ", dog=" + dog +
                 ", status=" + status +
+                ", reports=" + reports +
                 '}';
     }
 }
