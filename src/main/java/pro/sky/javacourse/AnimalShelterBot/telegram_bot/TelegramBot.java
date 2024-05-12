@@ -98,8 +98,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
         // ALL BOT STATES
 
-//        Code for replying incoming message (
-//        - if replying user message then reply should be sent to corresponding chat.
+//        Code for replying incoming message. If replying user message then reply should be sent to corresponding chat.
 
         if (update.hasMessage() && update.getMessage().getReplyToMessage() != null) {
             Long myChatId = update.getMessage().getChatId();
@@ -738,7 +737,6 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
     // Сделать отправку и проверку отчетов. (report state, volunteer state)
 //    Сделать отрисовку изображений в сообщениях с картой приюта, аватаркой пета и отчета. Возможно в чате с волонтером.
-// Отправка фото в чате с волонтером не работает
 }
 
 
