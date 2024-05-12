@@ -9,6 +9,9 @@ import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.api.methods.ForwardMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
+import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
+import org.telegram.telegrambots.meta.api.methods.send.SendVoice;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.*;
@@ -26,10 +29,7 @@ import pro.sky.javacourse.AnimalShelterBot.model.Shelter;
 import pro.sky.javacourse.AnimalShelterBot.service.BotService;
 import pro.sky.javacourse.AnimalShelterBot.telegram_bot.menu.BotState;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 // Class TelegramBot extends abstract class TelegramLongPollingBot from Telegram API
 @Component
@@ -45,7 +45,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private BotState keyboardState;
     private final Map<Long, BotState> botStates = new HashMap<Long, BotState>(); // Key is chatId
     private final Map<Long, Long> shelterIdByChatId = new HashMap<Long, Long>(); // Key is chatId
-    private final Map<Long, Long> petIdByChatId = new HashMap<Long, Long>(); // Key is chatId
+//    private final Map<Long, Long> petIdByChatId = new HashMap<Long, Long>(); // Key is chatId
 
 
     /**
@@ -112,20 +112,19 @@ public class TelegramBot extends TelegramLongPollingBot {
                 sendText(myChatId, ALTERNATIVE_TEXT);
                 return;
             }
-            BotState previousState = botStates.get(myChatId);
-            botStates.put(myChatId, BotState.REPLY);
-            Message message = update.getMessage();
-            User user = update.getMessage().getFrom();
-            Integer messageId = update.getMessage().getMessageId();
-            ForwardMessage forwardMessage = new ForwardMessage(targetChatId.toString(), chatId.toString(), messageId);
-            try {
-                execute(forwardMessage);
-            } catch (TelegramApiException e) {
-                logger.error("Error executing message: " + e.toString());
+                User user = update.getMessage().getFrom();
+                Integer messageId = update.getMessage().getMessageId();
+
+                if (update.hasMessage()) {
+                    ForwardMessage forwardMessageText = new ForwardMessage(targetChatId.toString(), myChatId.toString(), messageId);
+                    try {
+                        execute(forwardMessageText);
+                    } catch (TelegramApiException e) {
+                        logger.error("Error executing forward message: " + e.toString());
+                    }
+                    logger.info(user.getFirstName() + ", chatId " + chatId + ", sent a reply message to chatId: " + targetChatId);
+                }
             }
-            logger.info(user.getFirstName() + ", chatId " + chatId + ", wrote a reply to chatId " + targetChatId + " " + update.getMessage().getText());
-            botStates.put(myChatId, previousState);
-        }
 // End of code for replying incoming messages
 
         if (update.hasMessage() && update.getMessage().hasText() && update.getMessage().getReplyToMessage() == null) {
@@ -251,7 +250,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     } else if (callbackData.startsWith("SHELTER_REPORT_PET_SELECT")) {
                         Long shelterId = getIdFromCallbackData(callbackData);
                         menuReportPetSelect(chatId, shelterId);
-                } else {
+                    } else {
                         sendText(chatId, ALTERNATIVE_TEXT);
                     }
                 }
@@ -272,25 +271,28 @@ public class TelegramBot extends TelegramLongPollingBot {
             executeAndSendMessage(message);
             logger.info(user + " chatId " + chatId + " closed chat with volunteer.");
             botStates.put(chatId, BotState.COMMON);
-        } else if (update.hasMessage() && update.getMessage().hasText()) {
+        } else if (update.hasMessage()) {
             Long chatId = update.getMessage().getChatId();
             Long volunteerChatId = botService.findShelter(shelterIdByChatId.get(chatId)).getMainVolunteer().getChatId();
             User user = update.getMessage().getFrom();
             Integer messageId = update.getMessage().getMessageId();
-            ForwardMessage forwardMessage = new ForwardMessage(volunteerChatId.toString(), chatId.toString(), messageId);
 
-            try {
-                execute(forwardMessage);
-            } catch (TelegramApiException e) {
-                logger.error("Error executing message: " + e.toString());
+            if (update.hasMessage()) {
+                ForwardMessage forwardMessageText = new ForwardMessage(volunteerChatId.toString(), chatId.toString(), messageId);
+                try {
+                    execute(forwardMessageText);
+                } catch (TelegramApiException e) {
+                    logger.error("Error executing forward message: " + e.toString());
+                }
+                logger.info(user.getFirstName() + ", chatId " + chatId + ", sent a message to volunteer chatId " + volunteerChatId);
             }
-            logger.info(user.getFirstName() + ", chatId " + chatId + ", wrote to volunteer chatId " + volunteerChatId + " " + update.getMessage().getText());
         }
     }
 
     private void onUpdateReceivedReport(Update update) {
 
     }
+
     private void onUpdateReceivedReply(Update update) {
 
     }
@@ -734,12 +736,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         message.setReplyMarkup(keyboardMarkup);
         executeAndSendMessage(message);
     }
-
-
     // Сделать отправку и проверку отчетов. (report state, volunteer state)
 //    Сделать отрисовку изображений в сообщениях с картой приюта, аватаркой пета и отчета. Возможно в чате с волонтером.
-
-
+// Отправка фото в чате с волонтером не работает
 }
 
 
