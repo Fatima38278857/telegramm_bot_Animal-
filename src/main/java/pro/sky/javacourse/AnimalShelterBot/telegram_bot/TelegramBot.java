@@ -8,10 +8,7 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.api.methods.ForwardMessage;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
-import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
-import org.telegram.telegrambots.meta.api.methods.send.SendVoice;
+import org.telegram.telegrambots.meta.api.methods.send.*;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.*;
@@ -30,6 +27,7 @@ import pro.sky.javacourse.AnimalShelterBot.service.BotService;
 import pro.sky.javacourse.AnimalShelterBot.telegram_bot.menu.BotState;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -115,19 +113,19 @@ public class TelegramBot extends TelegramLongPollingBot {
                 sendText(myChatId, ALTERNATIVE_TEXT);
                 return;
             }
-                User user = update.getMessage().getFrom();
-                Integer messageId = update.getMessage().getMessageId();
+            User user = update.getMessage().getFrom();
+            Integer messageId = update.getMessage().getMessageId();
 
-                if (update.hasMessage()) {
-                    ForwardMessage forwardMessageText = new ForwardMessage(targetChatId.toString(), myChatId.toString(), messageId);
-                    try {
-                        execute(forwardMessageText);
-                    } catch (TelegramApiException e) {
-                        logger.error("Error executing forward message: " + e.toString());
-                    }
-                    logger.info(user.getFirstName() + ", chatId " + chatId + ", sent a reply message to chatId: " + targetChatId);
+            if (update.hasMessage()) {
+                ForwardMessage forwardMessageText = new ForwardMessage(targetChatId.toString(), myChatId.toString(), messageId);
+                try {
+                    execute(forwardMessageText);
+                } catch (TelegramApiException e) {
+                    logger.error("Error executing forward message: " + e.toString());
                 }
+                logger.info(user.getFirstName() + ", chatId " + chatId + ", sent a reply message to chatId: " + targetChatId);
             }
+        }
 // End of code for replying incoming messages
 
         if (update.hasMessage() && update.getMessage().hasText() && update.getMessage().getReplyToMessage() == null) {
@@ -241,6 +239,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                     } else if (callbackData.startsWith("ОСТАЛЬНЫЕ")) {
                         Long shelterId = getIdFromCallbackData(callbackData);
                         menuPetSelect(chatId, shelterId, PetType.ОСТАЛЬНЫЕ);
+                    } else if (callbackData.startsWith("AVATAR_PET")) {
+                        Long petId = getIdFromCallbackData(callbackData);
+                        menuPetAvatar(chatId, petId);
                     } else if (callbackData.startsWith("VOLUNTEER_CHAT")) {
                         Long shelterId = getIdFromCallbackData(callbackData);
                         menuVolunteerChat(chatId, shelterId);
@@ -538,15 +539,18 @@ public class TelegramBot extends TelegramLongPollingBot {
         Long shelterId = getIdFromCallbackData(callbackData);
         Shelter shelter = botService.findShelter(shelterId);
 
-        String[][][] buttons = {{{"Назад", "SHELTER_SMALL" + shelterId}, {"Выбрать", "SHELTER_LARGE" + shelterId}}};
+        String[][][] buttons = {{{"Схема проезда", "LOCATION_MAP" + shelterId}, {"Выбрать", "SHELTER_LARGE" + shelterId}}};
         InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
+
         EditMessageText editMessage = EditMessageText.builder()
                 .chatId(chatId)
                 .messageId(messageId)
-                .text(shelter.getName() + "\n" + shelter.getRegime() + "\n\nЗдесь должна быть схема проезда к приюту \""
-                        + shelter.getName() + "\"")
-                .replyMarkup(inlineKeyboardMarkup).build();
+                .text(shelter.getName() + "\n" + shelter.getAddress() +
+                        "\nСхема проезда к приюту " + shelter.getName() + " отправлена в чат.\"")
+                .replyMarkup(inlineKeyboardMarkup)
+                .build();
         executeAndEditMessage(editMessage);
+        menuLocationMapPhoto(update);
     }
 
     protected void menuHowTo(Long chatId, Long shelterId) {
@@ -602,8 +606,11 @@ public class TelegramBot extends TelegramLongPollingBot {
             executeAndSendMessage(message);
         } else {
             for (Pet pet : pets) {
+                String[][][] buttons = {{{"Выбрать", "AVATAR_PET" + pet.getId()}}};
                 message = SendMessage.builder().chatId(chatId)
-                        .text(pet.getName() + "\n\n" + pet.getAbilities() + " Возраст " + pet.getAge() + " полных лет").build();
+                        .text(pet.getName() + "\n" + pet.getAbilities() + " Возраст " + pet.getAge() + " полных лет")
+                        .replyMarkup(createInlineKeyboardMarkup(buttons))
+                        .build();
                 executeAndSendMessage(message);
             }
             message = SendMessage.builder().chatId(chatId).text("Вернуться в предыдущее меню").build();
@@ -699,7 +706,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             return;
         }
         SendMessage message = SendMessage.builder().chatId(chatId)
-                .text("Отправьте сообщение с текстом отчета:\n" +
+                .text("Кличка питомца - " + pet.getName() + "\nОтправьте сообщение с текстом отчета:\n" +
                         "- Опишите рацион животного.\n" +
                         "- Общее самочувствие и привыкание к новому месту." +
                         "- Изменения в поведении: отказ от старых привычек, приобретение новых." +
@@ -739,6 +746,52 @@ public class TelegramBot extends TelegramLongPollingBot {
         message.setReplyMarkup(keyboardMarkup);
         executeAndSendMessage(message);
     }
+    private void menuLocationMapPhoto(Update update) {
+        String callbackData = update.getCallbackQuery().getData();
+        Long chatId = update.getCallbackQuery().getMessage().getChatId();
+        Long shelterId = getIdFromCallbackData(callbackData);
+        Shelter shelter = botService.findShelter(shelterId);
+
+        String filePath = shelter.getLocationMapFilePath();
+        InputFile image = new InputFile(new File(filePath));
+        String caption = "Приют \"" + shelter.getName() +"\". " + shelter.getAddress() + " " + shelter.getRegime();
+        String[][][] buttons = {{{"Закрыть", "DELETE"}}};
+        InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
+        SendPhoto locationMap = SendPhoto.builder()
+                .chatId(chatId)
+                .photo(image)
+                .caption(caption)
+                .replyMarkup(inlineKeyboardMarkup)
+                .build();
+        try {
+            execute(locationMap);
+        } catch (TelegramApiException e) {
+            logger.error("Error executing photo message: " + e.toString());
+        }
+    }
+
+    private void menuPetAvatar(Long chatId, Long petId) {
+        Pet pet = botService.findPet(petId);
+        String filePath = pet.getAvatarFilePath();
+        InputFile image = new InputFile(new File(filePath));
+
+        String caption = pet.getName() +"\n" + pet.getAbilities() + " Ограничения: " + pet.getRestrictions() +
+                " Условия содержания или транспортировки: " + pet.getConditions();
+        String[][][] buttons = {{{"Закрыть", "DELETE"}}};
+        InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
+        SendPhoto locationMap = SendPhoto.builder()
+                .chatId(chatId)
+                .photo(image)
+                .caption(caption)
+                .replyMarkup(inlineKeyboardMarkup)
+                .build();
+        try {
+            execute(locationMap);
+        } catch (TelegramApiException e) {
+            logger.error("Error executing photo message: " + e.toString());
+        }
+    }
+
 
 
 //    TO DO:

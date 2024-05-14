@@ -37,8 +37,8 @@ public class TestDataInjector {
     private void initShelters() {
         Shelter shelter = new Shelter();
         shelter.setName("Солнышко");
-        shelter.setAddress("Адрес: Москва, ул. Академика Королева, 13");
-        shelter.setRegime("Режим работы:\nПонедельник - пятница: с 7-00 до 20-00 без обеда и выходных.");
+        shelter.setAddress("Москва, ул. Академика Королева, 13.");
+        shelter.setRegime("Понедельник - пятница: с 7-00 до 20-00 без обеда и выходных.");
         String howTo = "Чтобы взять животное из приюта необходимо будет посетить приют и выбрать питомца. Адрес и режим работы приюта можно узнать, просмотрев информацию из предыдущих меню.\n" +
                 "Краткую информацию о содержащихся в приюте питомцах можно узнать, проследовав в предыдущем меню по кнопке «Выбрать питомца».\n" +
                 "Также в нашем боте можно получить рекомендации специалистов по общим вопросам содержания отдельных видов и пород животных. \n" +
@@ -53,14 +53,14 @@ public class TestDataInjector {
         shelterService.add(shelter);
         shelter = new Shelter();
         shelter.setName("Дружок");
-        shelter.setAddress("Адрес: Ижевск, ул. Боевой славы, 5");
-        shelter.setRegime("Режим работы:\nПонедельник - пятница: с 8-00 до 21-00 без обеда и выходных.");
+        shelter.setAddress("Ижевск, ул. Боевой славы, 5.");
+        shelter.setRegime("Понедельник - пятница: с 8-00 до 21-00 без обеда и выходных.");
         shelter.setHowTo(howTo);
         shelterService.add(shelter);
         shelter = new Shelter();
         shelter.setName("На Невском");
-        shelter.setAddress("Адрес: Санкт-Петербург, Невский проспект, 18");
-        shelter.setRegime("Режим работы:\nПонедельник - пятница: с 6-00 до 20-00 без обеда и выходных.");
+        shelter.setAddress("Санкт-Петербург, Невский проспект, 18.");
+        shelter.setRegime("Понедельник - пятница: с 6-00 до 20-00 без обеда и выходных.");
         shelter.setHowTo(howTo);
         shelterService.add(shelter);
     }
