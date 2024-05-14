@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Images related with database entries (that depends on id's) ###
+/src/main/resources/images/

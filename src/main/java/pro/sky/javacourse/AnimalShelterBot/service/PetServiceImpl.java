@@ -2,6 +2,7 @@ package pro.sky.javacourse.AnimalShelterBot.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -9,20 +10,21 @@ import pro.sky.javacourse.AnimalShelterBot.model.*;
 import pro.sky.javacourse.AnimalShelterBot.repository.CaretakerRepository;
 import pro.sky.javacourse.AnimalShelterBot.repository.PetRepository;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import static java.nio.file.StandardOpenOption.CREATE_NEW;
+
 @Service
 public class PetServiceImpl implements PetService {
+    @Value("${avatars.dir.path}")
+    private String avatarsDir;
     private final PetRepository petRepository;
     private final CaretakerRepository caretakerRepository;
     private final Logger logger = LoggerFactory.getLogger(PetServiceImpl.class);
@@ -37,23 +39,50 @@ public class PetServiceImpl implements PetService {
         return petRepository.save(pet);
     }
 
+//    @Override
+//    public void uploadAvatar(Long petId, MultipartFile avatarFile) throws IOException {
+//        logger.info("Was invoked method PetService.uploadAvatar({}, avatarFile)", petId);
+//        Pet pet = find(petId);
+//        String fileName = "pet" + petId + "." + getExtensions(avatarFile.getOriginalFilename());
+//        pet.setAvatarFileName(fileName);
+//        pet.setAvatarFileSize(avatarFile.getSize());
+//        pet.setAvatarMediaType(avatarFile.getContentType());
+//        try (
+//                InputStream is = avatarFile.getInputStream();
+//                BufferedInputStream bis = new BufferedInputStream(is, 1024);
+//                ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+//            BufferedImage image = ImageIO.read(bis);
+//            ImageIO.write(image, getExtensions(fileName), baos);
+//            pet.setAvatar(baos.toByteArray());
+//            petRepository.save(pet);
+//        }
+//    }
     @Override
     public void uploadAvatar(Long petId, MultipartFile avatarFile) throws IOException {
         logger.info("Was invoked method PetService.uploadAvatar({}, avatarFile)", petId);
-        Pet pet = find(petId);
-        String fileName = "pet" + petId + "." + getExtensions(avatarFile.getOriginalFilename());
-        pet.setAvatarFileName(fileName);
-        pet.setAvatarFileSize(avatarFile.getSize());
-        pet.setAvatarMediaType(avatarFile.getContentType());
+        Pet pet = new Pet();
+        try {
+            pet = find(petId);
+        } catch (NullPointerException e) {
+            logger.error("Pet id({}) not found", pet);
+            return;
+        }
+        Path avatarFilePath = Path.of(avatarsDir, "pet" + petId + "." + getExtensions(avatarFile.getOriginalFilename()));
+        Files.createDirectories(avatarFilePath.getParent());
+        Files.deleteIfExists(avatarFilePath);
         try (
                 InputStream is = avatarFile.getInputStream();
+                OutputStream os = Files.newOutputStream(avatarFilePath, CREATE_NEW);
                 BufferedInputStream bis = new BufferedInputStream(is, 1024);
-                ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            BufferedImage image = ImageIO.read(bis);
-            ImageIO.write(image, getExtensions(fileName), baos);
-            pet.setAvatar(baos.toByteArray());
-            petRepository.save(pet);
+                BufferedOutputStream bos = new BufferedOutputStream(os, 1024);
+        ) {
+            bis.transferTo(bos);
         }
+
+        pet.setAvatarFilePath(avatarFilePath.toString());
+        pet.setAvatarFileSize(avatarFile.getSize());
+        pet.setAvatarMediaType(avatarFile.getContentType());
+        petRepository.save(pet);
     }
 
     private String getExtensions(String fileName) {

@@ -2,6 +2,7 @@ package pro.sky.javacourse.AnimalShelterBot.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -10,14 +11,18 @@ import pro.sky.javacourse.AnimalShelterBot.model.Volunteer;
 import pro.sky.javacourse.AnimalShelterBot.repository.ShelterRepository;
 import pro.sky.javacourse.AnimalShelterBot.repository.VolunteerRepository;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 
+import static java.nio.file.StandardOpenOption.CREATE_NEW;
+
 @Service
 public class ShelterServiceImpl implements ShelterService {
+    @Value("${locations.dir.path}")
+    private String locationMapsDir;
     private final ShelterRepository shelterRepository;
     private final VolunteerRepository volunteerRepository;
     private final Logger logger = LoggerFactory.getLogger(ShelterServiceImpl.class);
@@ -73,22 +78,35 @@ public class ShelterServiceImpl implements ShelterService {
 
     @Override
     public void uploadLocationMap(Long shelterId, MultipartFile locationMapFile) throws IOException {
-        logger.info("Was invoked method ShelterService.uploadAvatar({}, avatarFile)", shelterId);
-        Shelter shelter = find(shelterId);
-        String fileName = "shelter" + shelterId + "." + getExtensions(locationMapFile.getOriginalFilename());
-        shelter.setLocationMapFileName(fileName);
-        shelter.setLocationMapFileSize(locationMapFile.getSize());
-        shelter.setLocationMapMediaType(locationMapFile.getContentType());
-
+        logger.info("Was invoked method ShelterService.uploadLocationMap({}, locationMapFile)", shelterId);
+        Shelter shelter = new Shelter();
+        try {
+            shelter = find(shelterId);
+        } catch (NullPointerException e) {
+            logger.error("Shelter id({}) not found", shelterId);
+            return;
+        }
+        Path locationMapFilePath = Path.of(locationMapsDir, "shelter" + shelterId + "." + getExtensions(locationMapFile.getOriginalFilename()));
+        Files.createDirectories(locationMapFilePath.getParent());
+        Files.deleteIfExists(locationMapFilePath);
         try (
                 InputStream is = locationMapFile.getInputStream();
+                OutputStream os = Files.newOutputStream(locationMapFilePath, CREATE_NEW);
                 BufferedInputStream bis = new BufferedInputStream(is, 1024);
-                ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            BufferedImage image = ImageIO.read(bis);
-            ImageIO.write(image, getExtensions(fileName), baos);
-            shelter.setLocationMap(baos.toByteArray());
-            shelterRepository.save(shelter);
+                BufferedOutputStream bos = new BufferedOutputStream(os, 1024);
+        ) {
+            bis.transferTo(bos);
         }
+
+        shelter.setLocationMapFilePath(locationMapFilePath.toString());
+        shelter.setLocationMapFileSize(locationMapFile.getSize());
+        shelter.setLocationMapMediaType(locationMapFile.getContentType());
+        shelterRepository.save(shelter);
+    }
+
+    private String getExtensions(String fileName) {
+        logger.info("Was invoked method ShelterService.getExtensions({})", fileName);
+        return fileName.substring(fileName.lastIndexOf(".") + 1);
     }
 
     @Override
@@ -122,11 +140,6 @@ public class ShelterServiceImpl implements ShelterService {
             return null;
         }
         return shelter.getVolunteerSet();
-    }
-
-    private String getExtensions(String fileName) {
-        logger.info("Was invoked method ShelterService.getExtensions({})", fileName);
-        return fileName.substring(fileName.lastIndexOf(".") + 1);
     }
 
     @Override

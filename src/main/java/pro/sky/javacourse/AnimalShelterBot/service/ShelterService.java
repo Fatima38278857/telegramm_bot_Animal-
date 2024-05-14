@@ -28,4 +28,5 @@ public interface ShelterService {
     Volunteer getMainVolunteer(Long shelterId);
 
     Collection<Volunteer> getVolunteers(Long shelterId);
+
 }

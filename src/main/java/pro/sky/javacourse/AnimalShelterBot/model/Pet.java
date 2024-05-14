@@ -20,8 +20,7 @@ public class Pet {
     private String abilities;
     private String restrictions;
     private String conditions;
-    @JsonIgnore
-    private String avatarFileName;
+    private String avatarFilePath;
     @JsonIgnore
     private Long avatarFileSize;
     @JsonIgnore
@@ -45,7 +44,7 @@ public class Pet {
     public Pet() {
     }
 
-    public Pet(String name, Integer age, PetType type, String abilities, String restrictions, String conditions, Shelter shelter) {
+    public Pet(String name, Integer age, PetType type, String abilities, String restrictions, String conditions,  Shelter shelter) {
         this.name = name;
         this.age = age;
         this.type = type;
@@ -56,7 +55,7 @@ public class Pet {
         this.status = PetStatus.ОФОРМЛЯЕТСЯ;
     }
 
-    public Pet(Long id, String name, Integer age, PetType type, String abilities, String restrictions, String conditions, Shelter shelter, PetStatus status) {
+    public Pet(Long id, String name, Integer age, PetType type, String abilities, String restrictions, String conditions, String avatarFilePath, Shelter shelter, PetStatus status) {
         this.id = id;
         this.name = name;
         this.age = age;
@@ -64,6 +63,7 @@ public class Pet {
         this.abilities = abilities;
         this.restrictions = restrictions;
         this.conditions = conditions;
+        this.avatarFilePath = avatarFilePath;
         this.shelter = shelter;
         this.status = status;
     }
@@ -128,12 +128,20 @@ public class Pet {
         this.type = type;
     }
 
-    public String getAvatarFileName() {
-        return avatarFileName;
+    public String getAvatarFilePath() {
+        return avatarFilePath;
     }
 
-    public void setAvatarFileName(String avatarFileName) {
-        this.avatarFileName = avatarFileName;
+//    public String getLocationMapFilePath() {
+//        return locationMapFilePath;
+//    }
+//
+//    public void setLocationMapFilePath(String locationMapFilePath) {
+//        this.locationMapFilePath = locationMapFilePath;
+//    }
+
+    public void setAvatarFilePath(String avatarFilePath) {
+        this.avatarFilePath = avatarFilePath;
     }
 
     public Long getAvatarFileSize() {

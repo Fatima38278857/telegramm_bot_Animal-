@@ -2,7 +2,6 @@ package pro.sky.javacourse.AnimalShelterBot.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 import java.util.Set;
@@ -18,15 +17,11 @@ public class Shelter {
     @JsonIgnore
     @Column(name = "how_to", length = 2048)
     private String howTo;
-    @JsonIgnore
-    private String locationMapFileName;
+    private String locationMapFilePath;
     @JsonIgnore
     private Long locationMapFileSize;
     @JsonIgnore
     private String locationMapMediaType;
-    @JsonIgnore
-    @Lob
-    private byte[] locationMap;
     @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinTable(name = "shelters_volunteers",
             joinColumns = {
@@ -58,11 +53,12 @@ public class Shelter {
         this.regime = regime;
     }
 
-    public Shelter(String name, String address, String regime, String howTo, Volunteer mainVolunteer) {
+    public Shelter(String name, String address, String regime, String howTo, String locationMapFilePath, Volunteer mainVolunteer) {
         this.name = name;
         this.address = address;
         this.regime = regime;
         this.howTo = howTo;
+        this.locationMapFilePath = locationMapFilePath;
         this.mainVolunteer = mainVolunteer;
     }
 
@@ -110,14 +106,6 @@ public class Shelter {
         this.howTo = howTo;
     }
 
-    public byte[] getLocationMap() {
-        return locationMap;
-    }
-
-    public void setLocationMap(byte[] locationMap) {
-        this.locationMap = locationMap;
-    }
-
     public Set<Volunteer> getVolunteerSet() {
         return volunteerSet;
     }
@@ -126,12 +114,12 @@ public class Shelter {
         this.volunteerSet = volunteerSet;
     }
 
-    public String getLocationMapFileName() {
-        return locationMapFileName;
+    public String getLocationMapFilePath() {
+        return locationMapFilePath;
     }
 
-    public void setLocationMapFileName(String locationMapFileName) {
-        this.locationMapFileName = locationMapFileName;
+    public void setLocationMapFilePath(String locationMapFilePath) {
+        this.locationMapFilePath = locationMapFilePath;
     }
 
     public Long getLocationMapFileSize() {

@@ -29,6 +29,10 @@ import pro.sky.javacourse.AnimalShelterBot.model.Shelter;
 import pro.sky.javacourse.AnimalShelterBot.service.BotService;
 import pro.sky.javacourse.AnimalShelterBot.telegram_bot.menu.BotState;
 
+import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.util.*;
 
 // Class TelegramBot extends abstract class TelegramLongPollingBot from Telegram API
@@ -100,7 +104,8 @@ public class TelegramBot extends TelegramLongPollingBot {
 
 //        Code for replying incoming message. If replying user message then reply should be sent to corresponding chat.
 
-        if (update.hasMessage() && update.getMessage().getReplyToMessage() != null) {
+        if (update.hasMessage() && update.getMessage().getReplyToMessage() != null &&
+                update.getMessage().getReplyToMessage().getForwardFrom() != null) {
             Long myChatId = update.getMessage().getChatId();
             Long targetChatId;
             try {
@@ -735,8 +740,13 @@ public class TelegramBot extends TelegramLongPollingBot {
         message.setReplyMarkup(keyboardMarkup);
         executeAndSendMessage(message);
     }
-    // Сделать отправку и проверку отчетов. (report state, volunteer state)
+
+
+//    TO DO:
 //    Сделать отрисовку изображений в сообщениях с картой приюта, аватаркой пета и отчета. Возможно в чате с волонтером.
+//    Сделать отправку и проверку отчетов. (report state, volunteer state)
+
+
 }
 
 

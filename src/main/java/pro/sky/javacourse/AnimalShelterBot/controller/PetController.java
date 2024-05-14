@@ -1,5 +1,7 @@
 package pro.sky.javacourse.AnimalShelterBot.controller;
 
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -8,7 +10,7 @@ import pro.sky.javacourse.AnimalShelterBot.model.Pet;
 import pro.sky.javacourse.AnimalShelterBot.model.PetStatus;
 import pro.sky.javacourse.AnimalShelterBot.service.PetService;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -164,13 +166,34 @@ public class PetController {
         }
         return ResponseEntity.ok(Collections.unmodifiableCollection(pets));
     }
-    @GetMapping("/available/{shelterId}")
+    @GetMapping("/available")
     public ResponseEntity<Collection<Pet>> findByStatus(@RequestParam Long shelterId) {
         Collection<Pet> pets = petService.findAvailableByShelterId(shelterId);
         if (pets.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(Collections.unmodifiableCollection(pets));
+    }
+
+    @GetMapping("/avatar")
+    public ResponseEntity<InputStreamResource> showAvatar(@RequestParam("id") Long id) {
+        Pet pet = petService.find(id);
+        if (pet == null) {
+            return ResponseEntity.notFound().build();
+        }
+        String filePath = pet.getAvatarFilePath();
+        File file = new File(filePath);
+        FileInputStream fileInputStream;
+        try {
+            fileInputStream = new FileInputStream(file);
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .contentLength(file.length())
+                .contentType(MediaType.parseMediaType(pet.getAvatarMediaType()))
+                .body(new InputStreamResource(fileInputStream));
     }
 
     // DELETE - может быть использован для удаления некорректно введенного питомца
