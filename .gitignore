@@ -33,4 +33,5 @@ build/
 .vscode/
 
 ### Images related with database entries (that depends on id's) ###
-/src/main/resources/images/
+/src/main/resources/images/avatars
+/src/main/resources/images/locationMaps/
