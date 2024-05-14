@@ -104,8 +104,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
 //        Code for replying incoming message. If replying user message then reply should be sent to corresponding chat.
 
-        if (update.hasMessage() && update.getMessage().getReplyToMessage() != null &&
-                update.getMessage().getReplyToMessage().getForwardFrom() != null) {
+        if (update.hasMessage() && update.getMessage().getReplyToMessage() != null && botStates.get(chatId) != BotState.COLLECT_DATA) {
             Long myChatId = update.getMessage().getChatId();
             Long targetChatId;
             try {
