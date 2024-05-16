@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.api.methods.ForwardMessage;
+import org.telegram.telegrambots.meta.api.methods.GetFile;
 import org.telegram.telegrambots.meta.api.methods.send.*;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
@@ -20,17 +21,14 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
-import pro.sky.javacourse.AnimalShelterBot.model.Pet;
-import pro.sky.javacourse.AnimalShelterBot.model.PetType;
-import pro.sky.javacourse.AnimalShelterBot.model.Shelter;
+import pro.sky.javacourse.AnimalShelterBot.exception.ReportMaxMessagesException;
+import pro.sky.javacourse.AnimalShelterBot.exception.ReportMaxPhotoException;
+import pro.sky.javacourse.AnimalShelterBot.exception.ReportMaxTextException;
+import pro.sky.javacourse.AnimalShelterBot.model.*;
 import pro.sky.javacourse.AnimalShelterBot.service.BotService;
-import pro.sky.javacourse.AnimalShelterBot.telegram_bot.menu.BotState;
+import pro.sky.javacourse.AnimalShelterBot.telegram_bot.state.BotState;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.util.*;
 
 // Class TelegramBot extends abstract class TelegramLongPollingBot from Telegram API
@@ -45,9 +43,9 @@ public class TelegramBot extends TelegramLongPollingBot {
             "\nПожалуйста, выберите приют.";
     private final String ALTERNATIVE_TEXT = "Неизвестная команда!";
     private BotState keyboardState;
-    private final Map<Long, BotState> botStates = new HashMap<Long, BotState>(); // Key is chatId
-    private final Map<Long, Long> shelterIdByChatId = new HashMap<Long, Long>(); // Key is chatId
-//    private final Map<Long, Long> petIdByChatId = new HashMap<Long, Long>(); // Key is chatId
+    private final Map<Long, BotState> botStates = new HashMap<>(); // Key is chatId
+    private final Map<Long, Long> shelterIdByChatId = new HashMap<>(); // Key is chatId
+    private final Map<Long, Report> tempReports = new HashMap<>(); // Key is chatId
 
 
     /**
@@ -139,11 +137,13 @@ public class TelegramBot extends TelegramLongPollingBot {
                     if (botStates.get(chatId) == BotState.VOLUNTEER_CHAT) {
                         sendText(chatId, "Чат с волонтером закрыт. Открыть чат можно выбрав приют.");
                     }
-                    if (botStates.get(chatId) == BotState.VOLUNTEER_CHAT) {
+                    if (botStates.get(chatId) == BotState.COLLECT_DATA) {
                         sendText(chatId, "Отправка контакта отменена.");
                     }
                     if (botStates.get(chatId) == BotState.REPORT) {
+                        deleteReport(chatId);
                         sendText(chatId, "Создание отчета отменено.");
+                        botStates.put(chatId, BotState.COMMON);
                     }
                     botStates.put(chatId, BotState.COMMON);
                     ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove(true, true);
@@ -156,11 +156,15 @@ public class TelegramBot extends TelegramLongPollingBot {
                     logger.info(user.getFirstName() + ", chatId " + chatId + ", has removed keyboard using start command");
                     menuShelterSelect(chatId);
                     menuReportStart(chatId);
-                    return;
+                    return; // return prevents update delivering to another botState onUpdateRecieved methods
                 }
                 case "/help" -> {
-                    menuHelp(chatId);
-                    return;
+                    if (botStates.get(chatId) == BotState.REPORT) {
+                        menuReportHelp(chatId);
+                    } else {
+                        menuHelp(chatId);
+                        return; // return prevents update delivering to another botState onUpdateRecieved methods
+                    }
                 }
             }
         }
@@ -170,7 +174,6 @@ public class TelegramBot extends TelegramLongPollingBot {
             case COLLECT_DATA -> onUpdateReceivedCollectData(update);
             case VOLUNTEER_CHAT -> onUpdateReceivedVolunteerChat(update);
             case REPORT -> onUpdateReceivedReport(update);
-            case REPLY -> onUpdateReceivedReply(update);
         }
     }
 
@@ -189,6 +192,12 @@ public class TelegramBot extends TelegramLongPollingBot {
                         msg.setChatId(chatId);
                         msg.setReplyMarkup(keyboardRemove);
                         executeAndSendMessage(msg);
+                    }
+                    case "Отменить" -> {
+                        ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove(true, true);
+                        SendMessage msg = SendMessage.builder().chatId(chatId).text("Клавиатура удалена.").replyMarkup(keyboardRemove).build();
+                        executeAndSendMessage(msg);
+                        menuShelterSelect(chatId);
                     }
                     default -> sendText(chatId, ALTERNATIVE_TEXT);
                 }
@@ -293,13 +302,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void onUpdateReceivedReport(Update update) {
-
-    }
-
-    private void onUpdateReceivedReply(Update update) {
-
-    }
 
     private void onUpdateReceivedCollectData(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
@@ -341,6 +343,144 @@ public class TelegramBot extends TelegramLongPollingBot {
                 botStates.put(chatId, BotState.COMMON);
             }
         }
+    }
+
+    private void onUpdateReceivedReport(Update update) {
+        Long chatId = update.hasCallbackQuery() ? update.getCallbackQuery().getMessage().getChatId() : update.getMessage().getChatId();
+//        closing reportHelp menu
+        if (update.hasCallbackQuery() && update.getCallbackQuery().getData().equals("DELETE")) {
+            Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
+            User user = update.getCallbackQuery().getFrom();
+            DeleteMessage deleteMessage = DeleteMessage.builder().chatId(chatId).messageId(messageId).build();
+            try {
+                execute(deleteMessage);
+            } catch (TelegramApiException e) {
+                logger.error("Error deleting message: " + e.toString());
+            }
+            logger.info(user.getFirstName() + ", chatId " + chatId + " deleted message");
+            return;
+        }
+
+        //  Map tempReports <chatId, Report> must already have a Report to fill. Report was created by menuReportPetCurrent method
+        Report report = tempReports.get(chatId);
+        Message message = update.getMessage();
+
+// Обрабатываем кнопку сохранения отчета
+        if (update.hasMessage() && update.getMessage().hasText() && update.getMessage().getText().equals("Сохранить отчет")) {
+            if (report.getTextLength() < report.getMINTEXTLENGTH()) {
+                sendText(chatId, "Текстовая часть отчета должна быть не менее 25 символов.");
+                return;
+            }
+            if (report.getPhotosSize() == 0) {
+                sendText(chatId, "К отчету также необходимо приложить новое фото питомца.");
+                return;
+            }
+            botService.saveReport(report);
+            ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove(true, true);
+            SendMessage msg = SendMessage.builder().chatId(chatId).text("Отчет сохранен.").replyMarkup(keyboardRemove).build();
+            executeAndSendMessage(msg);
+            botStates.put(chatId, BotState.COMMON);
+            menuShelterSelect(chatId);
+        }
+// Обрабатываем кнопку отмены отчета
+        if (update.hasMessage() && update.getMessage().hasText() && update.getMessage().getText().equals("Отменить")) {
+            deleteReport(chatId);
+            ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove(true, true);
+            SendMessage msg = SendMessage.builder().chatId(chatId).text("Создание отчета отменено.").replyMarkup(keyboardRemove).build();
+            executeAndSendMessage(msg);
+            botStates.put(chatId, BotState.COMMON);
+            menuShelterSelect(chatId);
+        }
+// проверяем есть ли место для нового сообщения в отчете
+        if (report.getMessages() != null && report.getMessages().size() >= report.getMAXMESSAGES()) {
+            logger.error("Превышен лимит количества сообщений в отчете. ChatId: " + chatId);
+            sendText(chatId, "Превышен лимит количества сообщений в отчете.");
+            throw new ReportMaxMessagesException();
+        }
+        // что делать с проброшенным эксепшном?
+//   filling report with text messages from updates
+        //   !!! don't forget to assign messages to report and report to messages when saving report to database
+        // когда получено текстовое сообщение
+        if (update.hasMessage() && update.getMessage().hasText() && update.getMessage().getReplyToMessage() == null) {
+            // создаем объект ReportMessage для последующего сохранения в базе
+            ReportMessage reportMessage = new ReportMessage(update.getMessage().getMessageId());
+            reportMessage.setChatId(chatId);
+            // проверяем доступное место для текста в отчете
+            if (report.getTextLength() + message.getText().length() < report.getMAXTEXTLENGTH()) {
+                report.setTextLength(report.getTextLength() + message.getText().length());
+            } else {
+                logger.error("Ошибка! Превышена общая длина текстовых сообщений в отчете. ChatId: " + chatId);
+                sendText(chatId, "Ошибка! Превышена общая длина текстовых сообщений в отчете.");
+                throw new ReportMaxTextException();
+            }
+            // инициализируем поля сообщения
+            reportMessage.setId(message.getMessageId());
+            reportMessage.setText(message.getText());
+            reportMessage.setFirstName(message.getFrom().getFirstName());
+            reportMessage.setLastName(message.getFrom().getLastName());
+            reportMessage.setUserName(message.getFrom().getUserName());
+            reportMessage.setDate(message.getDate());
+            // добавляем сообщение в список сообщений в отчете
+            report.getMessages().add(reportMessage);
+//     filling report with photo messages from updates
+            // когда получено фото сообщение
+        } else if (update.hasMessage() && update.getMessage().hasPhoto() && update.getMessage().getReplyToMessage() == null) {
+            // создаем объект ReportMessage для последующего сохранения в базе
+            ReportMessage reportMessage = new ReportMessage(update.getMessage().getMessageId());
+            // проверяем есть ли место для фотографий в отчете
+            // получаем информацию о фото
+            List<PhotoSize> photos = update.getMessage().getPhoto();
+            PhotoSize photo = photos.get(photos.size() - 1);
+            Integer fileSize = photo.getFileSize();
+            if (report.getPhotosSize() + fileSize >= report.getMAXPHOTOSIZE()) {
+                logger.error("Превышен максимальный объем фотографий в отчете. ChatId: " + chatId);
+                sendText(chatId, "Превышен максимальный объем фотографий в отчете.");
+                throw new ReportMaxPhotoException();
+            } else {
+                report.setPhotosSize(report.getPhotosSize() + fileSize);
+            }
+            // инициализируем поля объекта сообщения
+            reportMessage.setChatId(chatId);
+            reportMessage.setFirstName(message.getFrom().getFirstName());
+            reportMessage.setLastName(message.getFrom().getLastName());
+            reportMessage.setUserName(message.getFrom().getUserName());
+            reportMessage.setDate(message.getDate());
+            if (message.getCaption() != null) {
+                reportMessage.setCaption(message.getCaption());
+            }
+            if (message.getMediaGroupId() != null) {
+                reportMessage.setMediaGroupId(message.getMediaGroupId());
+            }
+            reportMessage.setFileSize(fileSize);
+// Code for downloading photo from telegram update
+// path to download set using template: reportsDir/petId_messageDate_indexOfMessageInList_reportStatus.fileExtension
+            String fileId = photo.getFileId();
+            GetFile getFileRequest = new GetFile();
+            getFileRequest.setFileId(fileId);
+            // объявляем объект специального класса телеграмм File
+            org.telegram.telegrambots.meta.api.objects.File file;
+            // объявляем переменную для хранения пути, чтобы она была доступна после блока try
+            String downloadToPath;
+            try {
+                file = execute(getFileRequest);
+                downloadToPath = botService.getReportsDir() + "/" + report.getPet().getId() + "_" + message.getDate() + "_"
+                        + report.getMessages().size() + "_" + report.getStatus().name() + "." + botService.getExtensions(file.getFilePath());
+                downloadFile(file, new File(downloadToPath));
+                logger.info("Успешно загружено фото отчета: " + downloadToPath);
+                reportMessage.setFilePath(downloadToPath);
+            } catch (TelegramApiException e) {
+                logger.error("Ошибка загрузки фото из отчета по питомцу " + report.getPet().getId());
+                sendText(chatId, "Ошибка загрузки фото");
+                return;
+            }
+// End of code for downloading photo from telegram update
+            // добавляем сообщение в список сообщений в отчете
+            report.getMessages().add(reportMessage);
+            // сначала нужно сохранить отчет, чтобы можно его id присвоить сообщениям
+        } else {
+            sendText(chatId, ALTERNATIVE_TEXT);
+        }
+//        можно для незаконченных отчетов сделать папку INCOMPLETE, т.е. перенести статус в название директории
     }
 
     private void onUpdateReceivedVolunteer(Update update) {
@@ -432,14 +572,14 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
 
-    // Retrieving particular menu / bot message
+// Retrieving particular menu / bot message
 
 
     protected void menuHelp(Long chatId) {
         String text = "Взаимодействие с ботом производится путем нажатия кнопок под соответствующим сообщением. " +
                 "\nИногда кнопки могут быть заблокированы, если Вы находитесь в режиме прямого диалога с сотрудником приюта или " +
                 "создаете отчет об усыновлении питомца. Воспользуйтесь командой /start, если хотите выйти в начало из меню диалога или отчета. " +
-                "Для простого выхода из режима диалога воспользуйтесь кнопкой внизу. Для отправки отчета также предусмотрена кнопка внизу окна, " +
+                "Для простого выхода из режима диалога или отчета воспользуйтесь кнопкой внизу. Для отправки отчета также предусмотрена кнопка внизу окна, " +
                 "при выходе из отчета командой /start отчет не отправится. В случае разрыва связи или перегруженности бота бот также может " +
                 "не реагировать на кнопки. Надеемся на понимание.";
 
@@ -449,6 +589,26 @@ public class TelegramBot extends TelegramLongPollingBot {
                 .text(text)
                 .replyMarkup(inlineKeyboardMarkup).build();
         executeAndSendMessage(message); // отображение сообщения в чате, отправка в чат
+    }
+
+    protected void menuReportHelp(Long chatId) {
+        String text = "Отправляйте боту текстовые сообщения и фотографии питомца. " +
+                "Отменить создание отчета можно командой /start, но тогда отчет придется создавать заново. " +
+                "Отчет обязательно должен содержать фото питомца и текст:" +
+                "\n- Опишите общее самочувствие животного и привыкание к новому месту." +
+                "\n- Опишите рацион животного." +
+                "\n- Изменения в поведении: отказ от старых привычек, приобретение новых." +
+                "\n- Опишите рацион животного." +
+                "\n- Можете добавить то что, Вы считаете нужным или то, с чам Вам нужна консультация или помощь." +
+                "\nВ отчете не будут сохранены подписи к фото. Другие типы данных в отчете не сохраняются." +
+                "Максимальный размер отчета 50 мегабайт." +
+                "\nВАЖНО: Чтобы сохранить и отправить отчет нужно нажать на кнопку внизу окна.";
+        String[][][] buttons = {{{"Ok", "DELETE"}}};
+        InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
+        SendMessage message = SendMessage.builder().chatId(chatId)
+                .text(text)
+                .replyMarkup(inlineKeyboardMarkup).build();
+        executeAndSendMessage(message);
     }
 
     /**
@@ -678,7 +838,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     // Этот метод предлагает список питомцев из конкретного приюта для заполнения отчетов
-    // Практически полностью дублирует menuReportPetSelect(Long chatId)
+// Практически полностью дублирует menuReportPetSelect(Long chatId)
     protected void menuReportPetSelect(Long chatId, Long shelterId) {
         List<Pet> pets = botService.caretakerPets(chatId, shelterId);
 
@@ -713,14 +873,22 @@ public class TelegramBot extends TelegramLongPollingBot {
                         "\n Отменить отправку отчета Вы можете по кнопке внизу окна.").build();
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
         List<KeyboardRow> keyboardRows = new ArrayList<>();
+
+
         KeyboardRow row = new KeyboardRow();
-        row.addAll(List.of("Отменить отправку отчета"));
+        row.addAll(List.of("Сохранить отчет"));
+        keyboardRows.add(row);
+        row = new KeyboardRow();
+        row.addAll(List.of("Отменить"));
         keyboardRows.add(row);
         keyboardMarkup.setKeyboard(keyboardRows);
         keyboardMarkup.setResizeKeyboard(true); // resizes keyboard to smaller size
         keyboardMarkup.setOneTimeKeyboard(false);
         message.setReplyMarkup(keyboardMarkup);
         executeAndSendMessage(message);
+//        CREATING REPORT TO WORK WITH
+        botStates.put(chatId, BotState.REPORT);
+        tempReports.put(chatId, new Report(botService.findPet(petId), botService.findCaretakerByChatId(chatId)));
     }
 
     protected void menuContactRequest(Long chatId, Long shelterId) {
@@ -746,6 +914,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         message.setReplyMarkup(keyboardMarkup);
         executeAndSendMessage(message);
     }
+
     private void menuLocationMapPhoto(Update update) {
         String callbackData = update.getCallbackQuery().getData();
         Long chatId = update.getCallbackQuery().getMessage().getChatId();
@@ -754,7 +923,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         String filePath = shelter.getLocationMapFilePath();
         InputFile image = new InputFile(new File(filePath));
-        String caption = "Приют \"" + shelter.getName() +"\". " + shelter.getAddress() + " " + shelter.getRegime();
+        String caption = "Приют \"" + shelter.getName() + "\". " + shelter.getAddress() + " " + shelter.getRegime();
         String[][][] buttons = {{{"Закрыть", "DELETE"}}};
         InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
         SendPhoto locationMap = SendPhoto.builder()
@@ -775,7 +944,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         String filePath = pet.getAvatarFilePath();
         InputFile image = new InputFile(new File(filePath));
 
-        String caption = pet.getName() +"\n" + pet.getAbilities() + " Ограничения: " + pet.getRestrictions() +
+        String caption = pet.getName() + "\n" + pet.getAbilities() + " Ограничения: " + pet.getRestrictions() +
                 " Условия содержания или транспортировки: " + pet.getConditions();
         String[][][] buttons = {{{"Закрыть", "DELETE"}}};
         InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
@@ -792,11 +961,21 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    private void deleteReport(Long chatId) {
+        // сделать удаление временно загруженных фотографий
+        tempReports.remove(chatId);
+        logger.info("Report for chatId({}) deleted", chatId);
+    }
 
 
 //    TO DO:
-//    Сделать отрисовку изображений в сообщениях с картой приюта, аватаркой пета и отчета. Возможно в чате с волонтером.
-//    Сделать отправку и проверку отчетов. (report state, volunteer state)
+//    Сделать проверку отчетов. (report state, volunteer state)
+//    Сделать отрисовку изображений в сообщениях с отчетами. Возможно в чате с волонтером.
+//    Когда пропущены отчеты, тогда должны присылаться сообщения с предупреждениями опекуну и главному волонтеру приюта.
+//    Перед сохранением отчета должна быть проверка на минимальный текст и наличие фото.
+//    Попробовать поменять hibernate на create
+// Внимание, метод ReportMessageRepository и метод ReportRepository.save может работать некорректно в связи с тем,
+// что я не заменяю переданный объект вновь полученным из базы, следовательно, может вернуться исходный объект без Id
 
 
 }

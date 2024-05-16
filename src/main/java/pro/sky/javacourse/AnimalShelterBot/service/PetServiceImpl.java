@@ -39,24 +39,6 @@ public class PetServiceImpl implements PetService {
         return petRepository.save(pet);
     }
 
-//    @Override
-//    public void uploadAvatar(Long petId, MultipartFile avatarFile) throws IOException {
-//        logger.info("Was invoked method PetService.uploadAvatar({}, avatarFile)", petId);
-//        Pet pet = find(petId);
-//        String fileName = "pet" + petId + "." + getExtensions(avatarFile.getOriginalFilename());
-//        pet.setAvatarFileName(fileName);
-//        pet.setAvatarFileSize(avatarFile.getSize());
-//        pet.setAvatarMediaType(avatarFile.getContentType());
-//        try (
-//                InputStream is = avatarFile.getInputStream();
-//                BufferedInputStream bis = new BufferedInputStream(is, 1024);
-//                ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-//            BufferedImage image = ImageIO.read(bis);
-//            ImageIO.write(image, getExtensions(fileName), baos);
-//            pet.setAvatar(baos.toByteArray());
-//            petRepository.save(pet);
-//        }
-//    }
     @Override
     public void uploadAvatar(Long petId, MultipartFile avatarFile) throws IOException {
         logger.info("Was invoked method PetService.uploadAvatar({}, avatarFile)", petId);
@@ -217,6 +199,8 @@ public class PetServiceImpl implements PetService {
                         return null;
                     }
                     found.setCaretaker(null);
+                    found.setTrialStart(null);
+                    found.setTrialEnd(null);
                     return petRepository.save(found);
                 }).orElse(null);
     }

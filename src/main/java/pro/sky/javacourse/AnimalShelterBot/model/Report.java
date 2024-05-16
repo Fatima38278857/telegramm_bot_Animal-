@@ -1,8 +1,14 @@
 package pro.sky.javacourse.AnimalShelterBot.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import pro.sky.javacourse.AnimalShelterBot.exception.ReportMaxPhotoException;
+import pro.sky.javacourse.AnimalShelterBot.exception.ReportMaxTextException;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 @Entity(name = "reports")
@@ -16,39 +22,115 @@ public class Report {
     @ManyToOne()
     @JoinColumn(name = "pet_id")
     private Pet pet;
-    private LocalDateTime dateTime;
-    private String text;
+    @OneToMany (mappedBy = "id", cascade = CascadeType.ALL, orphanRemoval = false)
+    private final List<ReportMessage> messages = new ArrayList<>();
+    private LocalDateTime creationTime;
+    private LocalDateTime inspectionTime;
+    @Enumerated(EnumType.STRING)
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private ReportStatus status;
+    private int photosSize;
+    private int textLength;
+    private final int MAXMESSAGES = 20;
+    private final int MINTEXTLENGTH = 25;
+    private final int MAXTEXTLENGTH = 1000;
+    private final int MAXPHOTOSIZE = 50 * 1024 * 1024; // 50 Mb
 
-    public Report(Caretaker caretaker, Pet pet) {
-        this.caretaker = caretaker;
-        this.pet = pet;
-    }
 
     public Report() {
+    }
+
+    public Report(Pet pet, Caretaker caretaker) {
+        this.pet = pet;
+        this.caretaker = caretaker;
+        this.creationTime = LocalDateTime.now();
+        this.status = ReportStatus.INCOMPLETE;
+        this.photosSize = 0;
+        this.textLength = 0;
     }
 
     public Long getId() {
         return id;
     }
 
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public Caretaker getCaretaker() {
         return caretaker;
+    }
+
+    public void setCaretaker(Caretaker caretaker) {
+        this.caretaker = caretaker;
     }
 
     public Pet getPet() {
         return pet;
     }
 
-    public LocalDateTime getDateTime() {
-        return dateTime;
+    public void setPet(Pet pet) {
+        this.pet = pet;
     }
 
-    public String getText() {
-        return text;
+    public List<ReportMessage> getMessages() {
+        return messages;
     }
 
-    public void setText(String text) {
-        this.text = text;
+    public LocalDateTime getCreationTime() {
+        return creationTime;
+    }
+
+    public void setCreationTime(LocalDateTime creationTime) {
+        this.creationTime = creationTime;
+    }
+
+    public LocalDateTime getInspectionTime() {
+        return inspectionTime;
+    }
+
+    public void setInspectionTime(LocalDateTime inspectionTime) {
+        this.inspectionTime = inspectionTime;
+    }
+
+    public ReportStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(ReportStatus status) {
+        this.status = status;
+    }
+
+    public int getPhotosSize() {
+        return photosSize;
+    }
+
+    public int getMAXMESSAGES() {
+        return MAXMESSAGES;
+    }
+
+    public int getMINTEXTLENGTH() {
+        return MINTEXTLENGTH;
+    }
+
+    public int getMAXTEXTLENGTH() {
+        return MAXTEXTLENGTH;
+    }
+
+    public int getMAXPHOTOSIZE() {
+        return MAXPHOTOSIZE;
+    }
+
+    public void setPhotosSize(int photosSize) {
+        this.photosSize = photosSize;
+    }
+
+    public int getTextLength() {
+        return textLength;
+    }
+
+    public void setTextLength(int textLength) {
+        this.textLength = textLength;
     }
 
     @Override
@@ -67,11 +149,15 @@ public class Report {
     public String toString() {
         return "Report{" +
                 "id=" + id +
-                ", caretaker=" + caretaker.getId() +
-                ", pet=" + pet +
+                ", caretakerId=" + caretaker.getId() +
+                ", caretakerName=" + caretaker.getName() +
                 ", petId=" + pet.getId() +
-                ", dateTime=" + dateTime +
-                ", text='" + text + '\'' +
+                ", petName=" + pet.getName() +
+                ", messagesSize=" + messages.size() +
+                ", creationTime=" + creationTime +
+                ", inspectionTime=" + inspectionTime +
+                ", status=" + status +
+                ", photosSize=" + photosSize +
                 '}';
     }
 }

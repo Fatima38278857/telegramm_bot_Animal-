@@ -25,9 +25,6 @@ public class Pet {
     private Long avatarFileSize;
     @JsonIgnore
     private String avatarMediaType;
-    @JsonIgnore
-    @Lob
-    private byte[] avatar;
     private LocalDateTime trialStart;
     private LocalDateTime trialEnd;
     @ManyToOne()
@@ -132,14 +129,6 @@ public class Pet {
         return avatarFilePath;
     }
 
-//    public String getLocationMapFilePath() {
-//        return locationMapFilePath;
-//    }
-//
-//    public void setLocationMapFilePath(String locationMapFilePath) {
-//        this.locationMapFilePath = locationMapFilePath;
-//    }
-
     public void setAvatarFilePath(String avatarFilePath) {
         this.avatarFilePath = avatarFilePath;
     }
@@ -158,14 +147,6 @@ public class Pet {
 
     public void setAvatarMediaType(String avatarMediaType) {
         this.avatarMediaType = avatarMediaType;
-    }
-
-    public byte[] getAvatar() {
-        return avatar;
-    }
-
-    public void setAvatar(byte[] avatar) {
-        this.avatar = avatar;
     }
 
     public LocalDateTime getTrialStart() {

@@ -23,6 +23,7 @@ import static java.nio.file.StandardOpenOption.CREATE_NEW;
 public class ShelterServiceImpl implements ShelterService {
     @Value("${locations.dir.path}")
     private String locationMapsDir;
+
     private final ShelterRepository shelterRepository;
     private final VolunteerRepository volunteerRepository;
     private final Logger logger = LoggerFactory.getLogger(ShelterServiceImpl.class);
@@ -54,12 +55,17 @@ public class ShelterServiceImpl implements ShelterService {
     @Override
     public Shelter add(Shelter shelter) {
         logger.info("Was invoked method ShelterService.add({})", shelter);
-        Shelter shelterToAdd = new Shelter();
-        shelterToAdd.setName(shelter.getName());
-        shelterToAdd.setAddress(shelter.getAddress());
-        shelterToAdd.setRegime(shelter.getRegime());
-        shelterToAdd.setHowTo((shelter.getHowTo()));
-        return shelterRepository.save(shelterToAdd);
+//
+//
+//
+//        Shelter shelterToAdd = new Shelter();
+//        shelterToAdd.setName(shelter.getName());
+//        shelterToAdd.setAddress(shelter.getAddress());
+//        shelterToAdd.setRegime(shelter.getRegime());
+//        shelterToAdd.setHowTo((shelter.getHowTo()));
+
+
+        return shelterRepository.save(shelter);
     }
 
     @Override

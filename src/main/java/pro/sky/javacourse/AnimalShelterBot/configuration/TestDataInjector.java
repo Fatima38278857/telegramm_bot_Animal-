@@ -1,12 +1,19 @@
 package pro.sky.javacourse.AnimalShelterBot.configuration;
 
 import jakarta.annotation.PostConstruct;
+import org.apache.tomcat.util.http.fileupload.FileItem;
+import org.apache.tomcat.util.http.fileupload.IOUtils;
+import org.apache.tomcat.util.http.fileupload.disk.DiskFileItem;
 import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 import pro.sky.javacourse.AnimalShelterBot.model.*;
 import pro.sky.javacourse.AnimalShelterBot.service.CaretakerServiceImpl;
 import pro.sky.javacourse.AnimalShelterBot.service.PetService;
 import pro.sky.javacourse.AnimalShelterBot.service.ShelterServiceImpl;
 import pro.sky.javacourse.AnimalShelterBot.service.VolunteerServiceImpl;
+
+import java.io.*;
+import java.nio.file.Files;
 
 
 @Component
@@ -131,7 +138,5 @@ public class TestDataInjector {
                 "4321 654321", "+7555444333", 6725110697L);
         caretakerService.add(caretaker);
     }
-
-
 }
 

@@ -1,14 +1,14 @@
 package pro.sky.javacourse.AnimalShelterBot.service;
 
 import org.telegram.telegrambots.meta.api.objects.Contact;
-import pro.sky.javacourse.AnimalShelterBot.model.Pet;
-import pro.sky.javacourse.AnimalShelterBot.model.PetType;
-import pro.sky.javacourse.AnimalShelterBot.model.Shelter;
-import pro.sky.javacourse.AnimalShelterBot.model.TelegramContact;
+import pro.sky.javacourse.AnimalShelterBot.model.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface BotService {
+    String getReportsDir();
+
     // List<Shelter> getShelters(); // возвращает список или Set приютов
     // Shelter getShelterById(Long shelterId); // возвращает приют по Id
     // List<String> getPetTypes(Long shelterId); // возвращает список видов животных (Собаки, Кошки, Остальные) без повторений (DISTINCT) отсортированный в таком порядке
@@ -33,6 +33,10 @@ public interface BotService {
     List<Pet> caretakerPets(Long chatId);
     List<Pet> caretakerPets(Long chatId, Long shelterId);
     Long findChatIdByPetId(Long petId);
+    Caretaker findCaretakerByChatId(Long chatId);
+    LocalDateTime toLocalDateTime(Integer date);
+    String getExtensions(String fileName);
+    Report saveReport(Report report);
 
     // Нужно в приют добавить поле с дежурным волонтером в класс приют
 }

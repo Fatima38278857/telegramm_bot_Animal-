@@ -2,11 +2,14 @@ package pro.sky.javacourse.AnimalShelterBot.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.Contact;
 import pro.sky.javacourse.AnimalShelterBot.model.*;
 
-import java.util.Comparator;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -15,13 +18,25 @@ public class BotServiceImpl implements BotService {
     private final ShelterService shelterService;
     private final CaretakerService caretakerService;
     private final PetService petService;
-    private final Logger logger = LoggerFactory.getLogger(BotServiceImpl.class);
+    private final ReportMessageService reportMessageService;
+    private final ReportService reportService;
 
-    public BotServiceImpl(TelegramContactService telegramContactService, ShelterService shelterService, CaretakerService caretakerService, PetService petService) {
+    private final Logger logger = LoggerFactory.getLogger(BotServiceImpl.class);
+    @Value("${reports.dir.path}")
+    private String reportsDir;
+
+    public BotServiceImpl(TelegramContactService telegramContactService, ShelterService shelterService, CaretakerService caretakerService, PetService petService, ReportMessageService reportMessageService, ReportService reportService) {
         this.telegramContactService = telegramContactService;
         this.shelterService = shelterService;
         this.caretakerService = caretakerService;
         this.petService = petService;
+        this.reportMessageService = reportMessageService;
+        this.reportService = reportService;
+    }
+
+    @Override
+    public String getReportsDir() {
+        return reportsDir;
     }
 
     @Override
@@ -95,6 +110,26 @@ public class BotServiceImpl implements BotService {
     @Override
     public Long findChatIdByPetId(Long petId) {
         return petService.findChatIdByPetId(petId);
+    }
+
+    @Override
+    public Caretaker findCaretakerByChatId(Long chatId) {
+        return caretakerService.findByChatId(chatId);
+    }
+
+    @Override
+    public LocalDateTime toLocalDateTime(Integer date) {
+        return LocalDateTime.ofInstant(Instant.ofEpochSecond(date), ZoneId.systemDefault());
+    }
+
+    @Override
+    public String getExtensions(String fileName) {
+        return reportMessageService.getExtensions(fileName);
+    }
+
+    @Override
+    public Report saveReport(Report report) {
+        return reportService.saveReport(report);
     }
 
 }
