@@ -29,6 +29,8 @@ import pro.sky.javacourse.AnimalShelterBot.service.BotService;
 import pro.sky.javacourse.AnimalShelterBot.telegram_bot.state.BotState;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.*;
 
 // Class TelegramBot extends abstract class TelegramLongPollingBot from Telegram API
@@ -155,7 +157,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     }
                     logger.info(user.getFirstName() + ", chatId " + chatId + ", has removed keyboard using start command");
                     menuShelterSelect(chatId);
-                    menuReportStart(chatId);
+//                    menuReportStart(chatId);
                     return; // return prevents update delivering to another botState onUpdateRecieved methods
                 }
                 case "/help" -> {
@@ -221,6 +223,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "SHELTER_SELECT" -> {
                     sendText(chatId, "Выберите приют:");
                     menuShelterSelect(chatId);
+
+
+//                    menuReportStart(chatId);
                 }
                 case "REPORT_PET_SELECT" -> {
                     menuReportPetSelect(chatId);
@@ -256,13 +261,53 @@ public class TelegramBot extends TelegramLongPollingBot {
                         menuVolunteerChat(chatId, shelterId);
                     } else if (callbackData.startsWith("REPORT")) {
                         Long petId = getIdFromCallbackData(callbackData);
-                        menuReportPetCurrent(petId);
+                        menuReportPetCurrent(chatId, petId);
                     } else if (callbackData.startsWith("CONTACT")) {
                         Long shelterId = getIdFromCallbackData(callbackData);
                         menuContactRequest(chatId, shelterId);
                     } else if (callbackData.startsWith("SHELTER_REPORT_PET_SELECT")) {
                         Long shelterId = getIdFromCallbackData(callbackData);
                         menuReportPetSelect(chatId, shelterId);
+                    } else if (callbackData.startsWith("UNVERIFIED")) {
+                        Long shelterId = getIdFromCallbackData(callbackData);
+                        menuReportSelect(update.getCallbackQuery().getMessage().getChatId(), shelterId);
+                    } else if (callbackData.startsWith("CHECK_REPORT")) {
+                        menuReportCheck(update);
+                    } else if (callbackData.startsWith("APPROVE")) {
+                        Long volunteerChatId = update.getCallbackQuery().getMessage().getChatId();
+                        Long reportId = getIdFromCallbackData(callbackData);
+                        Report report = botService.approveReport(reportId, volunteerChatId);
+                        Pet pet = report.getPet();
+                        menuShelter(volunteerChatId, pet.getShelter().getId());
+                    } else if (callbackData.startsWith("DECLINE")) {
+                        Long volunteerChatId = update.getCallbackQuery().getMessage().getChatId();
+                        Long reportId = getIdFromCallbackData(callbackData);
+                        Report report = botService.declineReport(reportId, volunteerChatId);
+                        Pet pet = report.getPet();
+                        Long caretakerChatId = pet.getCaretaker().getChatId();
+                        sendText(caretakerChatId, "Ваш отчет по питомцу " + pet.getName() +
+                                " не принят волонтером. Необходимо предоставить новый отчет в соответсвии " +
+                                "с рекоммендациями. В противном случае нам придется лично проверить содержание питомца.");
+                        menuShelter(volunteerChatId, pet.getShelter().getId());
+                    } else if (callbackData.startsWith("NO_TEXT")) {
+                        Long volunteerChatId = update.getCallbackQuery().getMessage().getChatId();
+                        Long reportId = getIdFromCallbackData(callbackData);
+                        Report report = botService.findReport(reportId);
+                        Pet pet = report.getPet();
+                        Long caretakerChatId = pet.getCaretaker().getChatId();
+                        sendText(caretakerChatId, "Дополните текстовую часть отчета в соответсвии с " +
+                                "рекоммендациями. В противном случае нам придется лично проверить содержание питомца.");
+                        sendText(volunteerChatId, "Направлено сообщение о неполном тексте опекуну.");
+                    } else if (callbackData.startsWith("NO_PHOTO")) {
+                        Long volunteerChatId = update.getCallbackQuery().getMessage().getChatId();
+                        Long reportId = getIdFromCallbackData(callbackData);
+                        Report report = botService.findReport(reportId);
+                        Pet pet = report.getPet();
+                        Long caretakerChatId = pet.getCaretaker().getChatId();
+                        sendText(caretakerChatId, "Дополните отчет информативными фотографиями" +
+                                " в соответсвии с рекоммендациями. В противном случае нам придется лично " +
+                                "проверить содержание питомца.");
+                        sendText(volunteerChatId, "Направлено сообщение о нехватке фото опекуну.");
                     } else {
                         sendText(chatId, ALTERNATIVE_TEXT);
                     }
@@ -391,6 +436,9 @@ public class TelegramBot extends TelegramLongPollingBot {
             botStates.put(chatId, BotState.COMMON);
             menuShelterSelect(chatId);
         }
+        if (update.hasMessage() && update.getMessage().hasText() && update.getMessage().getText().equals("/help")) {
+            return; // команда /help обработается в onUpdateReceived();
+        }
 // проверяем есть ли место для нового сообщения в отчете
         if (report.getMessages() != null && report.getMessages().size() >= report.getMAXMESSAGES()) {
             logger.error("Превышен лимит количества сообщений в отчете. ChatId: " + chatId);
@@ -451,6 +499,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             if (message.getMediaGroupId() != null) {
                 reportMessage.setMediaGroupId(message.getMediaGroupId());
             }
+            reportMessage.setFileUniqueId(photo.getFileUniqueId());
             reportMessage.setFileSize(fileSize);
 // Code for downloading photo from telegram update
 // path to download set using template: reportsDir/petId_messageDate_indexOfMessageInList_reportStatus.fileExtension
@@ -630,6 +679,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             shelterMessage.setReplyMarkup(inlineKeyboardMarkup);
             executeAndSendMessage(shelterMessage);
         }
+        menuReportStart(chatId);
     }
 
     /**
@@ -672,7 +722,17 @@ public class TelegramBot extends TelegramLongPollingBot {
         List<List<InlineKeyboardButton>> keyboardRows = new ArrayList<>();
 
         if (botService.isVolunteer(chatId, shelterId)) {
-            keyboardRows.add(List.of(createInlineKeyBoardButton("Проверить отчеты опекунов", "REPORT_CHECK" + shelterId)));
+// добавить проверку есть ли в данном приюте непроверенные отчеты
+
+
+            List<Report> unverifiedReports = botService.findByStatus(ReportStatus.UNVERIFIED).stream()
+                    .filter(report -> Objects.equals(report.getPet().getShelter().getId(), shelterId))
+                    .toList();
+            if (!unverifiedReports.isEmpty()) {
+                for (Report report : unverifiedReports) {
+                    keyboardRows.add(List.of(createInlineKeyBoardButton("Проверить отчеты опекунов", "UNVERIFIED" + shelterId)));
+                }
+            }
         }
         if (botService.caretakerHasPets(chatId, shelterId)) { // если у опекуна есть питомцы на испытательном сроке в данном приюте
             keyboardRows.add(List.of(createInlineKeyBoardButton("Сдать отчет", "SHELTER_REPORT_PET_SELECT" + shelterId)));
@@ -833,7 +893,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 executeAndSendMessage(petMessage);
             }
         } else {
-            menuReportPetCurrent(pets.get(0).getId());
+            menuReportPetCurrent(chatId, pets.get(0).getId());
         }
     }
 
@@ -841,7 +901,6 @@ public class TelegramBot extends TelegramLongPollingBot {
 // Практически полностью дублирует menuReportPetSelect(Long chatId)
     protected void menuReportPetSelect(Long chatId, Long shelterId) {
         List<Pet> pets = botService.caretakerPets(chatId, shelterId);
-
         if (pets.size() > 1) {
             for (Pet pet : pets) {
                 SendMessage petMessage = SendMessage.builder()
@@ -853,13 +912,13 @@ public class TelegramBot extends TelegramLongPollingBot {
                 executeAndSendMessage(petMessage);
             }
         } else {
-            menuReportPetCurrent(pets.get(0).getId());
+            menuReportPetCurrent(chatId, pets.get(0).getId());
         }
     }
 
-    protected void menuReportPetCurrent(Long petId) {
+    //    Этот метод открывает чат для отправки reportMessages
+    protected void menuReportPetCurrent(Long chatId, Long petId) {
         Pet pet = botService.findPet(petId); // Будет использован при отправке отчета.
-        Long chatId;
         try {
             chatId = botService.findChatIdByPetId(petId); // throws NPE when pet no longer have caretaker
         } catch (NullPointerException e) {
@@ -870,7 +929,8 @@ public class TelegramBot extends TelegramLongPollingBot {
                         "- Опишите рацион животного.\n" +
                         "- Общее самочувствие и привыкание к новому месту." +
                         "- Изменения в поведении: отказ от старых привычек, приобретение новых." +
-                        "\n Отменить отправку отчета Вы можете по кнопке внизу окна.").build();
+                        "\n Отменить отправку отчета Вы можете по кнопке внизу окна." +
+                        "\n ВАЖНО! Перед сохранением отчета убедитесь, что ваши фото загрузились на сервер.").build();
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
         List<KeyboardRow> keyboardRows = new ArrayList<>();
 
@@ -891,6 +951,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         tempReports.put(chatId, new Report(botService.findPet(petId), botService.findCaretakerByChatId(chatId)));
     }
 
+    //    Этот метод открывает чат для отправки контактных данных TelegramContact в приют
     protected void menuContactRequest(Long chatId, Long shelterId) {
         Shelter shelter = botService.findShelter(shelterId);
         botStates.put(chatId, BotState.COLLECT_DATA);
@@ -915,6 +976,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         executeAndSendMessage(message);
     }
 
+    // Этот метод показывает карту проезда к приюту
     private void menuLocationMapPhoto(Update update) {
         String callbackData = update.getCallbackQuery().getData();
         Long chatId = update.getCallbackQuery().getMessage().getChatId();
@@ -939,6 +1001,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    // Этот метод показывает подробную информацию о питомце и его аватар
     private void menuPetAvatar(Long chatId, Long petId) {
         Pet pet = botService.findPet(petId);
         String filePath = pet.getAvatarFilePath();
@@ -961,11 +1024,86 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    //    Этот метод очищает память от отчетов, либо сохраненных, либо отмененных
     private void deleteReport(Long chatId) {
         // сделать удаление временно загруженных фотографий
         tempReports.remove(chatId);
         logger.info("Report for chatId({}) deleted", chatId);
     }
+
+    //    Этот метод выводит список непроверенных отчетов
+    protected void menuReportSelect(Long chatId, Long shelterId) {
+        if (botService.isVolunteer(chatId, shelterId)) {
+            List<Report> unverifiedReports = botService.findByStatus(ReportStatus.UNVERIFIED).stream()
+                    .filter(report -> Objects.equals(report.getPet().getShelter().getId(), shelterId))
+                    .toList();
+            if (!unverifiedReports.isEmpty()) {
+                for (Report report : unverifiedReports) {
+                    menuReportSmall(chatId, report);
+                }
+                String[][][] buttons = {{{"Назад", "SHELTER_LARGE" + shelterId}}};
+                InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
+                SendMessage message = SendMessage.builder().chatId(chatId)
+                        .text("Вернуться в предыдущее меню.")
+                        .replyMarkup(inlineKeyboardMarkup).build();
+                executeAndSendMessage(message);
+            }
+        }
+    }
+
+    // Этот метод создает один элемент меню из метода menuReportSelect
+    protected void menuReportSmall(Long chatId, Report report) {
+        Pet pet = report.getPet();
+        String[][][] buttons = {{{"Проверить", "CHECK_REPORT" + report.getId()}}}; // сделать точку входа
+        InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
+        SendMessage message = SendMessage.builder().chatId(chatId)
+                .text(report.getCreationTime().toString() + "-" + pet.getName() + "-" + "ID " + pet.getId())
+                .replyMarkup(inlineKeyboardMarkup).build();
+        executeAndSendMessage(message);
+    }
+
+    //    Это метод по проверке, согласованию или отклонению отчета
+    protected void menuReportCheck(Update update) {
+        String callbackData = update.getCallbackQuery().getData();
+        Long reportId = getIdFromCallbackData(callbackData);
+        Long chatId = update.getCallbackQuery().getMessage().getChatId();
+
+        sendText(chatId, "----------Начало отчета-----------");
+        // получаем список сообщений в отчете
+        List<ReportMessage> messages = botService.findReportMessages(reportId);
+// для каждого сообщения выполняем либо sendText, либо execute(SendPhoto)
+        for (ReportMessage message : messages) {
+            if (message.getText() != null) {
+                sendText(chatId, message.getText());
+            } else if (message.getFilePath() != null) {
+                InputFile image = new InputFile(new File(message.getFilePath()));
+                SendPhoto messagePhoto = SendPhoto.builder()
+                        .chatId(chatId)
+                        .photo(image)
+                        .build();
+                if (message.getCaption() != null) {
+                    messagePhoto.setCaption(message.getCaption());
+                }
+                try {
+                    execute(messagePhoto);
+                } catch (TelegramApiException e) {
+                    logger.error("Error executing report message: " + e.toString());
+                }
+            }
+        }
+        // выводим кнопки с действиями с отчетом
+        String[][][] buttons = {{{"Утвердить", "APPROVE" + reportId}, {"Отказать", "DECLINE" + reportId}},
+                {{"Неполный текст", "NO_TEXT" + reportId}, {"Нужны фото", "NO_PHOTO" + reportId}}};
+        // сделать точку входа
+        InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardMarkup(buttons);
+        SendMessage message = SendMessage.builder().chatId(chatId)
+                .text("-------Проверить отчет--------")
+                .replyMarkup(inlineKeyboardMarkup).build();
+        executeAndSendMessage(message);
+    }
+
+
+}
 
 
 //    TO DO:
@@ -976,8 +1114,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 //    Попробовать поменять hibernate на create
 // Внимание, метод ReportMessageRepository и метод ReportRepository.save может работать некорректно в связи с тем,
 // что я не заменяю переданный объект вновь полученным из базы, следовательно, может вернуться исходный объект без Id
+// /help сохраняется в отчете
 
-
-}
 
 

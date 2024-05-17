@@ -10,6 +10,7 @@ import pro.sky.javacourse.AnimalShelterBot.model.*;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Collection;
 import java.util.List;
 
 @Service
@@ -130,6 +131,31 @@ public class BotServiceImpl implements BotService {
     @Override
     public Report saveReport(Report report) {
         return reportService.saveReport(report);
+    }
+
+    @Override
+    public Report approveReport(Long reportId, Long volunteerChatId) {
+        return reportService.approveReport(reportId, volunteerChatId);
+    }
+
+    @Override
+    public Report declineReport(Long reportId, Long volunteerChatId) {
+        return reportService.declineReport(reportId, volunteerChatId);
+    }
+
+    @Override
+    public Report findReport(Long id) {
+        return reportService.findById(id);
+    }
+
+    @Override
+    public Collection<Report> findByStatus(ReportStatus status) {
+        return reportService.findByStatus(status);
+    }
+
+    @Override
+    public List<ReportMessage> findReportMessages(Long reportId) {
+        return reportMessageService.findReportMessages(reportId);
     }
 
 }

@@ -6,6 +6,8 @@ import pro.sky.javacourse.AnimalShelterBot.model.ReportMessage;
 import pro.sky.javacourse.AnimalShelterBot.model.ReportStatus;
 import pro.sky.javacourse.AnimalShelterBot.repository.ReportRepository;
 
+import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 @Service
@@ -32,6 +34,36 @@ public class ReportServiceImpl implements ReportService {
             reportMessageService.save(message);
         }
         return reportFromDb;
+    }
+
+    @Override
+    public Report findById(Long id) {
+        return reportRepository.findById(id).orElse(null);
+    }
+
+    @Override
+    public Collection<Report> findByStatus(ReportStatus status) {
+        return reportRepository.findByStatus(status);
+    }
+
+    @Override
+    public Report approveReport(Long reportId, Long volunteerChatId) {
+        Report reportFromDb = reportRepository.findById(reportId).orElse(null);
+        if (reportFromDb != null && reportFromDb.getStatus().equals(ReportStatus.UNVERIFIED)) {
+            reportFromDb.setStatus(ReportStatus.ACCEPTED);
+            reportFromDb.setInspectionTime(LocalDateTime.now());
+            return reportRepository.save(reportFromDb);
+        } else return null;
+    }
+
+    @Override
+    public Report declineReport(Long reportId, Long volunteerChatId) {
+        Report reportFromDb = reportRepository.findById(reportId).orElse(null);
+        if (reportFromDb != null && reportFromDb.getStatus().equals(ReportStatus.UNVERIFIED)) {
+            reportFromDb.setStatus(ReportStatus.REJECTED);
+            reportFromDb.setInspectionTime(LocalDateTime.now());
+            return reportRepository.save(reportFromDb);
+        } else return null;
     }
 }
 

@@ -4,6 +4,7 @@ import org.telegram.telegrambots.meta.api.objects.Contact;
 import pro.sky.javacourse.AnimalShelterBot.model.*;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 public interface BotService {
@@ -36,7 +37,13 @@ public interface BotService {
     Caretaker findCaretakerByChatId(Long chatId);
     LocalDateTime toLocalDateTime(Integer date);
     String getExtensions(String fileName);
+    Report findReport(Long id);
     Report saveReport(Report report);
+    Report approveReport(Long reportId, Long volunteerChatId);
+    Report declineReport(Long reportId, Long volunteerChatId);
+    Collection<Report> findByStatus(ReportStatus status);
+
+    List<ReportMessage> findReportMessages(Long reportId);
 
     // Нужно в приют добавить поле с дежурным волонтером в класс приют
 }

@@ -19,6 +19,7 @@ public class ReportMessage {
     @Column(name = "text", length = 1024)
     String text;
     int fileSize;
+    String FileUniqueId;
     String filePath;
     String mediaGroupId;
     @Column(name = "caption", length = 1024)
@@ -96,6 +97,14 @@ public class ReportMessage {
 
     public void setText(String text) {
         this.text = text;
+    }
+
+    public String getFileUniqueId() {
+        return FileUniqueId;
+    }
+
+    public void setFileUniqueId(String fileUniqueId) {
+        FileUniqueId = fileUniqueId;
     }
 
     public int getFileSize() {
