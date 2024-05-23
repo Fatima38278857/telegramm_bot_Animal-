@@ -87,15 +87,15 @@ public class TestDataInjector {
 
         Shelter shelter = shelterService.findShelterByName("Солнышко");
         shelter.setMainVolunteer(volunteer);
-        shelterService.edit(shelter.getId(), shelter);
+        shelterService.edit(shelter);
 
         shelter = shelterService.findShelterByName("Дружок");
         shelter.setMainVolunteer(volunteer);
-        shelterService.edit(shelter.getId(), shelter);
+        shelterService.edit(shelter);
 
         shelter = shelterService.findShelterByName("На Невском");
         shelter.setMainVolunteer(volunteer);
-        shelterService.edit(shelter.getId(), shelter);
+        shelterService.edit(shelter);
     }
 
     private void setOtherVolunteers() {
@@ -130,7 +130,7 @@ public class TestDataInjector {
         petService.add(new Pet("Пуля", 5, PetType.СОБАКА, "Смесь пуделя и болонки, очень активная.", "Отсутствуют.", "Обычные.", shelter));
         petService.add(new Pet("Элвис", 1, PetType.ОСТАЛЬНЫЕ, "Обаятельный хомяк", "Отсутствуют.", "Нужна клетка.", shelter));
         petService.getAll().forEach(petService::available);
-        petService.ill(petService.find("Тортилла"));
+        petService.ill(petService.find("Тортилла").stream().findAny().orElse(null));
     }
 
     private void initCaretakers() {

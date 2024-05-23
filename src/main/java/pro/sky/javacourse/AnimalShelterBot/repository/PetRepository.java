@@ -14,7 +14,7 @@ import java.util.Optional;
 @Repository
 public interface PetRepository extends JpaRepository<Pet, Long> {
     Collection<Pet> findByStatus(PetStatus status);
-    Optional<Pet> findByName(String name);
+    Collection<Pet> findByName(String name);
     Collection<Pet> findByShelterId(Long shelterId);
     Collection<Pet> findByCaretakerId(Long caretakerId);
     Collection<Pet> findByCaretakerIdAndShelterId(Long caretakerId, Long shelterId);

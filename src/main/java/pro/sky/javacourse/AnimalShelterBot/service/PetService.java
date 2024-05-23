@@ -12,9 +12,9 @@ import java.util.List;
 
 public interface PetService {
     Pet add(Pet pet);
-    void uploadAvatar(Long petId, MultipartFile avatarFile) throws IOException;
+    Pet uploadAvatar(Long petId, MultipartFile avatarFile) throws IOException;
     Pet find(Long id);
-    Pet find(String name);
+    Collection<Pet> find(String name);
     Collection<Pet> getAll();
     Collection<Pet> findByStatus(PetStatus status);
     List<Pet> findAvailableByShelterId(Long shelterId);

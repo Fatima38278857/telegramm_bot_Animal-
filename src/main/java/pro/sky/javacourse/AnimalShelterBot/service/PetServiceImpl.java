@@ -1,5 +1,6 @@
 package pro.sky.javacourse.AnimalShelterBot.service;
 
+import jakarta.ws.rs.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,14 +41,12 @@ public class PetServiceImpl implements PetService {
     }
 
     @Override
-    public void uploadAvatar(Long petId, MultipartFile avatarFile) throws IOException {
+    public Pet uploadAvatar(Long petId, MultipartFile avatarFile) throws IOException, NullPointerException {
         logger.info("Was invoked method PetService.uploadAvatar({}, avatarFile)", petId);
-        Pet pet = new Pet();
-        try {
-            pet = find(petId);
-        } catch (NullPointerException e) {
-            logger.error("Pet id({}) not found", pet);
-            return;
+        Pet pet = find(petId);
+        if (pet == null) {
+            logger.error("Pet id({}) not found", petId);
+            throw new NullPointerException();
         }
         Path avatarFilePath = Path.of(avatarsDir, "pet" + petId + "." + getExtensions(avatarFile.getOriginalFilename()));
         Files.createDirectories(avatarFilePath.getParent());
@@ -60,11 +59,10 @@ public class PetServiceImpl implements PetService {
         ) {
             bis.transferTo(bos);
         }
-
         pet.setAvatarFilePath(avatarFilePath.toString());
         pet.setAvatarFileSize(avatarFile.getSize());
         pet.setAvatarMediaType(avatarFile.getContentType());
-        petRepository.save(pet);
+        return petRepository.save(pet);
     }
 
     private String getExtensions(String fileName) {
@@ -80,9 +78,9 @@ public class PetServiceImpl implements PetService {
 
     @Override
     @Transactional
-    public Pet find(String name) {
+    public Collection<Pet> find(String name) {
         logger.info("Was invoked method PetService.find({})", name);
-        return petRepository.findByName(name).orElse(null);
+        return petRepository.findByName(name);
     }
 
     @Override

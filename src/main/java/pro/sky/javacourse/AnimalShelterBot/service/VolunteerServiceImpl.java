@@ -101,9 +101,13 @@ public class VolunteerServiceImpl implements VolunteerService{
     }
 
     @Override
-    public void delete(Long id) {
-        logger.info("Was invoked method VolunteerService.delete({})", id);
-        volunteerRepository.deleteById(id);
+    public void delete(Volunteer volunteer) {
+        logger.info("Was invoked method VolunteerService.delete({})", volunteer);
+        Volunteer volunteerFromDb = volunteerRepository.findById(volunteer.getId()).orElse(null);
+        if (volunteerFromDb == null) {
+            return;
+        }
+        volunteerRepository.deleteById(volunteer.getId());
     }
 
 }

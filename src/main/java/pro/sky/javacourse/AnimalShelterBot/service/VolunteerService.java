@@ -23,5 +23,5 @@ public interface VolunteerService {
 
     void removeFromShelter(Long id, Long shelterId);
 
-    void delete(Long id);
+    void delete(Volunteer volunteer);
 }

@@ -69,9 +69,9 @@ public class ShelterServiceImpl implements ShelterService {
     }
 
     @Override
-    public Shelter edit(Long id, Shelter shelter) {
-        logger.info("Was invoked method ShelterService.edit({}, {})", id, shelter);
-        return shelterRepository.findById(id)
+    public Shelter edit(Shelter shelter) {
+        logger.info("Was invoked method ShelterService.edit({})", shelter);
+        return shelterRepository.findById(shelter.getId())
                 .map(found -> {
                     found.setName(shelter.getName());
                     found.setAddress(shelter.getAddress());
@@ -83,14 +83,12 @@ public class ShelterServiceImpl implements ShelterService {
     }
 
     @Override
-    public void uploadLocationMap(Long shelterId, MultipartFile locationMapFile) throws IOException {
+    public Shelter uploadLocationMap(Long shelterId, MultipartFile locationMapFile) throws IOException {
         logger.info("Was invoked method ShelterService.uploadLocationMap({}, locationMapFile)", shelterId);
-        Shelter shelter = new Shelter();
-        try {
-            shelter = find(shelterId);
-        } catch (NullPointerException e) {
+        Shelter shelter = find(shelterId);
+        if (shelter == null) {
             logger.error("Shelter id({}) not found", shelterId);
-            return;
+            throw new NullPointerException();
         }
         Path locationMapFilePath = Path.of(locationMapsDir, "shelter" + shelterId + "." + getExtensions(locationMapFile.getOriginalFilename()));
         Files.createDirectories(locationMapFilePath.getParent());
@@ -103,11 +101,10 @@ public class ShelterServiceImpl implements ShelterService {
         ) {
             bis.transferTo(bos);
         }
-
         shelter.setLocationMapFilePath(locationMapFilePath.toString());
         shelter.setLocationMapFileSize(locationMapFile.getSize());
         shelter.setLocationMapMediaType(locationMapFile.getContentType());
-        shelterRepository.save(shelter);
+        return shelterRepository.save(shelter);
     }
 
     private String getExtensions(String fileName) {
@@ -116,15 +113,16 @@ public class ShelterServiceImpl implements ShelterService {
     }
 
     @Override
-    public void setMainVolunteer(Long shelterId, Long mainVolunteerId) {
-        logger.info("Was invoked method ShelterService.setMainVolunteer({}, {})", shelterId, mainVolunteerId);
+    public Shelter setMainVolunteer(Shelter shelter, Long mainVolunteerId) {
+        logger.info("Was invoked method ShelterService.setMainVolunteer({}, {})", shelter, mainVolunteerId);
         Volunteer volunteer = volunteerRepository.findById(mainVolunteerId).orElse(null);
-        Shelter shelter = shelterRepository.findById(shelterId).orElse(null);
-        if (volunteer == null || shelter == null) {
-            logger.error(volunteer == null ? "volunteer" : "shelter" + " not found");
+        Shelter shelterFromDb = shelterRepository.findById(shelter.getId()).orElse(null);
+        if (volunteer == null || shelterFromDb == null) {
+            logger.error(volunteer == null ? "Volunteer not found" : "Shelter not found");
+            throw new NullPointerException();
         } else {
-            shelter.setMainVolunteer(volunteer);
-            shelterRepository.save(shelter);
+            shelterFromDb.setMainVolunteer(volunteer);
+            return shelterRepository.save(shelterFromDb);
         }
     }
 

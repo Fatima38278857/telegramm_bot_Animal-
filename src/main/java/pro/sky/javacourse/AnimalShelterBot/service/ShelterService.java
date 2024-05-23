@@ -17,13 +17,13 @@ public interface ShelterService {
 
     Shelter add(Shelter shelter);
 
-    Shelter edit(Long id, Shelter shelter);
+    Shelter edit(Shelter shelter);
 
     void delete(Shelter shelter);
 
-    void uploadLocationMap(Long shelterId, MultipartFile locationMapFile) throws IOException;
+    Shelter uploadLocationMap(Long shelterId, MultipartFile locationMapFile) throws IOException;
 
-    void setMainVolunteer(Long shelterId, Long mainVolunteerId);
+    Shelter setMainVolunteer(Shelter shelter, Long mainVolunteerId);
 
     Volunteer getMainVolunteer(Long shelterId);
 
