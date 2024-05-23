@@ -4,7 +4,6 @@ import pro.sky.javacourse.AnimalShelterBot.model.Report;
 import pro.sky.javacourse.AnimalShelterBot.model.ReportStatus;
 
 import java.util.Collection;
-import java.util.List;
 
 public interface ReportService {
     Report saveReport(Report report);

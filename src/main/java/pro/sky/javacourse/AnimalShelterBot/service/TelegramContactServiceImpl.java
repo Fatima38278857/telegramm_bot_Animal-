@@ -5,12 +5,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pro.sky.javacourse.AnimalShelterBot.model.TelegramContact;
-import pro.sky.javacourse.AnimalShelterBot.repository.ShelterRepository;
 import pro.sky.javacourse.AnimalShelterBot.repository.TelegramContactRepository;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class TelegramContactServiceImpl implements TelegramContactService{

@@ -1,10 +1,7 @@
 package pro.sky.javacourse.AnimalShelterBot.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import pro.sky.javacourse.AnimalShelterBot.exception.ReportMaxPhotoException;
-import pro.sky.javacourse.AnimalShelterBot.exception.ReportMaxTextException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;

@@ -13,8 +13,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import pro.sky.javacourse.AnimalShelterBot.model.Caretaker;
-import pro.sky.javacourse.AnimalShelterBot.model.Pet;
 import pro.sky.javacourse.AnimalShelterBot.model.Shelter;
 import pro.sky.javacourse.AnimalShelterBot.model.Volunteer;
 import pro.sky.javacourse.AnimalShelterBot.service.ShelterService;

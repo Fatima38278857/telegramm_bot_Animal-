@@ -1,7 +1,6 @@
 package pro.sky.javacourse.AnimalShelterBot.service;
 
 import org.springframework.web.multipart.MultipartFile;
-import pro.sky.javacourse.AnimalShelterBot.model.Caretaker;
 import pro.sky.javacourse.AnimalShelterBot.model.Pet;
 import pro.sky.javacourse.AnimalShelterBot.model.PetStatus;
 import pro.sky.javacourse.AnimalShelterBot.model.PetType;

@@ -1,7 +1,6 @@
 package pro.sky.javacourse.AnimalShelterBot.service;
 
 import pro.sky.javacourse.AnimalShelterBot.model.ReportMessage;
-import pro.sky.javacourse.AnimalShelterBot.model.ReportMessage;
 
 import java.util.List;
 

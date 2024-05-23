@@ -55,16 +55,6 @@ public class ShelterServiceImpl implements ShelterService {
     @Override
     public Shelter add(Shelter shelter) {
         logger.info("Was invoked method ShelterService.add({})", shelter);
-//
-//
-//
-//        Shelter shelterToAdd = new Shelter();
-//        shelterToAdd.setName(shelter.getName());
-//        shelterToAdd.setAddress(shelter.getAddress());
-//        shelterToAdd.setRegime(shelter.getRegime());
-//        shelterToAdd.setHowTo((shelter.getHowTo()));
-
-
         return shelterRepository.save(shelter);
     }
 
